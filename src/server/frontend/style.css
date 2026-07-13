@@ -1,0 +1,31 @@
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: system-ui, sans-serif; background: #1a1a2e; color: #e0e0e0; }
+#app { max-width: 900px; margin: 0 auto; padding: 20px; }
+header { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #333; }
+h1 { font-size: 1.5rem; color: #7ec8e3; }
+nav { display: flex; gap: 8px; }
+.nav-btn { background: #333; color: #e0e0e0; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; }
+.nav-btn.active { background: #7ec8e3; color: #1a1a2e; }
+.view { display: none; padding: 20px 0; }
+.view.active { display: block; }
+.form-group { margin-bottom: 16px; }
+label { display: block; margin-bottom: 4px; font-size: 0.9rem; color: #aaa; }
+textarea, input[type="text"] { width: 100%; background: #16213e; color: #e0e0e0; border: 1px solid #333; border-radius: 4px; padding: 8px; font-family: monospace; }
+.test-file-entry { margin-bottom: 12px; padding: 12px; background: #16213e; border-radius: 4px; }
+.btn-primary { background: #0f3460; color: #e0e0e0; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; }
+.btn-secondary { background: #333; color: #e0e0e0; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; }
+.btn-danger { background: #8b0000; color: #e0e0e0; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; }
+.event-log { background: #0d1117; border: 1px solid #333; border-radius: 4px; padding: 12px; max-height: 400px; overflow-y: auto; font-family: monospace; font-size: 0.85rem; }
+.event-log .event { padding: 4px 0; border-bottom: 1px solid #222; }
+.event-round { color: #7ec8e3; }
+.event-llm { color: #98c379; }
+.event-guardrail { color: #e5c07b; }
+.event-error { color: #e06c75; }
+.hitl-panel { margin-top: 16px; padding: 16px; background: #2a1a1a; border: 1px solid #8b0000; border-radius: 4px; }
+.hidden { display: none; }
+.task-list { display: flex; flex-direction: column; gap: 8px; }
+.task-card { padding: 12px; background: #16213e; border-radius: 4px; cursor: pointer; }
+.task-card .status { float: right; padding: 2px 8px; border-radius: 4px; font-size: 0.8rem; }
+.status-success { background: #1a4a1a; }
+.status-failure { background: #4a1a1a; }
+.status-running { background: #1a1a4a; }
