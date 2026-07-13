@@ -1,0 +1,108 @@
+﻿=== Commits ===
+e248f47 feat: memory store with SQLite persistence
+
+=== Stat Summary ===
+ src/memory/memory-store.ts | 47 ++++++++++++++++++++++++++++++++++++++++++++++
+ tests/memory-store.test.ts | 40 +++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 87 insertions(+)
+
+=== Full Diff ===
+diff --git a/src/memory/memory-store.ts b/src/memory/memory-store.ts
+new file mode 100644
+index 0000000..30e8faf
+--- /dev/null
++++ b/src/memory/memory-store.ts
+@@ -0,0 +1,47 @@
++import Database from 'better-sqlite3';
++import type { Task, Round, TaskStatus } from '../types.js';
++
++export class MemoryStore {
++  private db: Database.Database;
++  constructor(dbPath: string) { this.db = new Database(dbPath); this.init(); }
++
++  private init(): void {
++    this.db.exec(`
++      CREATE TABLE IF NOT EXISTS tasks (id TEXT PRIMARY KEY, description TEXT NOT NULL, test_files TEXT NOT NULL, status TEXT NOT NULL, created_at TEXT NOT NULL, finished_at TEXT);
++      CREATE TABLE IF NOT EXISTS rounds (id INTEGER PRIMARY KEY AUTOINCREMENT, task_id TEXT NOT NULL REFERENCES tasks(id), round_num INTEGER NOT NULL, code_files TEXT NOT NULL, action TEXT NOT NULL, feedback TEXT, failure_type TEXT, created_at TEXT NOT NULL);
++    `);
++  }
++
++  saveTask(task: Task): void {
++    this.db.prepare('INSERT OR REPLACE INTO tasks (id, description, test_files, status, created_at, finished_at) VALUES (@id, @description, @test_files, @status, @created_at, @finished_at)').run({
++      id: task.id, description: task.description, test_files: JSON.stringify(task.testFiles), status: task.status, created_at: task.createdAt, finished_at: task.finishedAt,
++    });
++  }
++
++  saveRound(round: Round): void {
++    this.db.prepare('INSERT INTO rounds (task_id, round_num, code_files, action, feedback, failure_type, created_at) VALUES (@task_id, @round_num, @code_files, @action, @feedback, @failure_type, @created_at)').run({
++      task_id: round.taskId, round_num: round.roundNum, code_files: JSON.stringify(round.codeFiles), action: JSON.stringify(round.action), feedback: round.feedback ? JSON.stringify(round.feedback) : null, failure_type: round.failureType, created_at: round.createdAt,
++    });
++  }
++
++  getTask(taskId: string): { task: Task; rounds: Round[] } | null {
++    const taskRow = this.db.prepare('SELECT * FROM tasks WHERE id = ?').get(taskId) as Record<string, string | null> | undefined;
++    if (!taskRow) return null;
++    const task: Task = { id: taskRow.id as string, description: taskRow.description as string, testFiles: JSON.parse(taskRow.test_files as string), status: taskRow.status as TaskStatus, createdAt: taskRow.created_at as string, finishedAt: taskRow.finished_at };
++    const roundRows = this.db.prepare('SELECT * FROM rounds WHERE task_id = ? ORDER BY round_num').all(taskId) as Array<Record<string, string | number | null>>;
++    const rounds: Round[] = roundRows.map(r => ({ id: r.id as number, taskId: r.task_id as string, roundNum: r.round_num as number, codeFiles: JSON.parse(r.code_files as string), action: JSON.parse(r.action as string), feedback: r.feedback ? JSON.parse(r.feedback as string) : null, failureType: r.failure_type as Round['failureType'], createdAt: r.created_at as string }));
++    return { task, rounds };
++  }
++
++  listTasks(offset: number, limit: number): Task[] {
++    const rows = this.db.prepare('SELECT * FROM tasks ORDER BY created_at DESC LIMIT ? OFFSET ?').all(limit, offset) as Array<Record<string, string | null>>;
++    return rows.map(r => ({ id: r.id as string, description: r.description as string, testFiles: JSON.parse(r.test_files as string), status: r.status as TaskStatus, createdAt: r.created_at as string, finishedAt: r.finished_at }));
++  }
++
++  updateTaskStatus(taskId: string, status: TaskStatus): void {
++    const finishedAt = (status === 'success' || status === 'failure' || status === 'aborted') ? new Date().toISOString() : null;
++    this.db.prepare('UPDATE tasks SET status = ?, finished_at = ? WHERE id = ?').run(status, finishedAt, taskId);
++  }
++
++  close(): void { this.db.close(); }
++}
+diff --git a/tests/memory-store.test.ts b/tests/memory-store.test.ts
+new file mode 100644
+index 0000000..4219094
+--- /dev/null
++++ b/tests/memory-store.test.ts
+@@ -0,0 +1,40 @@
++import { describe, it, expect, beforeEach, afterEach } from 'vitest';
++import { MemoryStore } from '../src/memory/memory-store.js';
++import { mkdtempSync, rmSync } from 'fs';
++import { join } from 'path';
++import { tmpdir } from 'os';
++import type { Task, Round } from '../src/types.js';
++
++describe('MemoryStore', () => {
++  let store: MemoryStore; let dbPath: string;
++  beforeEach(() => { dbPath = join(mkdtempSync(join(tmpdir(), 'harness-mem-')), 'test.db'); store = new MemoryStore(dbPath); });
++  afterEach(() => { store.close(); rmSync(dbPath); });
++
++  it('saves and retrieves a task', () => {
++    const task: Task = { id: 't1', description: 'Implement a stack', testFiles: { 'test_stack.py': 'def test_push(): pass' }, status: 'running', createdAt: new Date().toISOString(), finishedAt: null };
++    store.saveTask(task);
++    const retrieved = store.getTask('t1');
++    expect(retrieved).not.toBeNull();
++    expect(retrieved!.task.description).toBe('Implement a stack');
++    expect(retrieved!.rounds).toHaveLength(0);
++  });
++  it('saves and retrieves rounds', () => {
++    store.saveTask({ id: 't1', description: 'test', testFiles: {}, status: 'running', createdAt: new Date().toISOString(), finishedAt: null });
++    store.saveRound({ id: 0, taskId: 't1', roundNum: 1, codeFiles: { 'stack.py': 'x' }, action: { type: 'write_file', path: 'stack.py', content: 'x' } as never, feedback: null, failureType: null, createdAt: new Date().toISOString() });
++    const retrieved = store.getTask('t1');
++    expect(retrieved!.rounds).toHaveLength(1);
++    expect(retrieved!.rounds[0].roundNum).toBe(1);
++  });
++  it('lists tasks with pagination', () => {
++    for (let i = 0; i < 5; i++) store.saveTask({ id: `t${i}`, description: `task ${i}`, testFiles: {}, status: 'success', createdAt: new Date().toISOString(), finishedAt: new Date().toISOString() });
++    expect(store.listTasks(0, 2)).toHaveLength(2);
++    expect(store.listTasks(4, 2)).toHaveLength(1);
++  });
++  it('updates task status', () => {
++    store.saveTask({ id: 't1', description: 'test', testFiles: {}, status: 'running', createdAt: new Date().toISOString(), finishedAt: null });
++    store.updateTaskStatus('t1', 'success');
++    expect(store.getTask('t1')!.task.status).toBe('success');
++    expect(store.getTask('t1')!.task.finishedAt).not.toBeNull();
++  });
++  it('returns null for nonexistent task', () => { expect(store.getTask('nonexistent')).toBeNull(); });
++});

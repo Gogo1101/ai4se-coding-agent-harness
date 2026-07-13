@@ -1,0 +1,53 @@
+﻿=== Commits ===
+46be4b4 feat: failure classifier for categorizing test failures
+
+=== Stat Summary ===
+ src/feedback/failure-classifier.ts | 12 ++++++++++++
+ tests/failure-classifier.test.ts   | 20 ++++++++++++++++++++
+ 2 files changed, 32 insertions(+)
+
+=== Full Diff ===
+diff --git a/src/feedback/failure-classifier.ts b/src/feedback/failure-classifier.ts
+new file mode 100644
+index 0000000..89de5cc
+--- /dev/null
++++ b/src/feedback/failure-classifier.ts
+@@ -0,0 +1,12 @@
++// src/feedback/failure-classifier.ts
++import type { FeedbackSignal, FailureType } from '../types.js';
++
++export function classifyFailure(feedback: FeedbackSignal): FailureType {
++  if (feedback.failures.length === 0) return feedback.failureType || 'RUNTIME_ERROR';
++  const a = feedback.failures[0].assertion;
++  if (/SyntaxError|syntax error/i.test(a)) return 'COMPILE_ERROR';
++  if (/ModuleNotFoundError|ImportError/i.test(a)) return 'IMPORT_ERROR';
++  if (/Timeout|timed?\s*out/i.test(a)) return 'TIMEOUT';
++  if (/AssertionError|assert\s/i.test(a)) return 'ASSERTION_ERROR';
++  return 'RUNTIME_ERROR';
++}
+diff --git a/tests/failure-classifier.test.ts b/tests/failure-classifier.test.ts
+new file mode 100644
+index 0000000..cd4868b
+--- /dev/null
++++ b/tests/failure-classifier.test.ts
+@@ -0,0 +1,20 @@
++// tests/failure-classifier.test.ts
++import { describe, it, expect } from 'vitest';
++import { classifyFailure } from '../src/feedback/failure-classifier.js';
++import type { FeedbackSignal } from '../src/types.js';
++
++function makeFeedback(assertion: string): FeedbackSignal {
++  return { total: 3, passed: 2, failed: 1, failures: [{ testName: 'test_x', assertion, expected: '', actual: '', traceback: '' }], failureType: 'RUNTIME_ERROR', rawReport: '' };
++}
++
++describe('FailureClassifier', () => {
++  it('classifies SyntaxError as COMPILE_ERROR', () => { expect(classifyFailure(makeFeedback('SyntaxError: invalid syntax'))).toBe('COMPILE_ERROR'); });
++  it('classifies AssertionError as ASSERTION_ERROR', () => { expect(classifyFailure(makeFeedback('AssertionError: assert 1 == 2'))).toBe('ASSERTION_ERROR'); });
++  it('classifies ModuleNotFoundError as IMPORT_ERROR', () => { expect(classifyFailure(makeFeedback("ModuleNotFoundError: No module named 'numpy'"))).toBe('IMPORT_ERROR'); });
++  it('classifies Timeout as TIMEOUT', () => { expect(classifyFailure(makeFeedback('Timeout: execution exceeded 30s'))).toBe('TIMEOUT'); });
++  it('classifies unknown as RUNTIME_ERROR', () => { expect(classifyFailure(makeFeedback('RuntimeError: something went wrong'))).toBe('RUNTIME_ERROR'); });
++  it('returns existing type when no failures', () => {
++    const fb: FeedbackSignal = { total: 0, passed: 0, failed: 0, failures: [], failureType: 'COMPILE_ERROR', rawReport: '' };
++    expect(classifyFailure(fb)).toBe('COMPILE_ERROR');
++  });
++});

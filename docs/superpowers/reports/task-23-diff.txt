@@ -1,0 +1,39 @@
+﻿=== Commits ===
+d93b8da ci: add unit-test and docker-build jobs
+
+=== Stat Summary ===
+ .github/workflows/ci.yml | 25 +++++++++++++++++++++++++
+ 1 file changed, 25 insertions(+)
+
+=== Full Diff ===
+diff --git a/.github/workflows/ci.yml b/.github/workflows/ci.yml
+new file mode 100644
+index 0000000..633a17b
+--- /dev/null
++++ b/.github/workflows/ci.yml
+@@ -0,0 +1,25 @@
++name: CI
++
++on:
++  push:
++  pull_request:
++
++jobs:
++  unit-test:
++    runs-on: ubuntu-latest
++    steps:
++      - uses: actions/checkout@v4
++      - uses: actions/setup-node@v4
++        with:
++          node-version: '20'
++      - run: npm ci
++      - run: npx tsc --noEmit
++      - run: npx vitest run
++
++  docker-build:
++    needs: unit-test
++    runs-on: ubuntu-latest
++    if: github.ref == 'refs/heads/main'
++    steps:
++      - uses: actions/checkout@v4
++      - run: docker build -t harness-python:latest .

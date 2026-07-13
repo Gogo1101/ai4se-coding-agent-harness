@@ -1,0 +1,86 @@
+﻿=== Commits ===
+8cce24c feat: history compressor for multi-round context management
+
+=== Stat Summary ===
+ src/feedback/history-compressor.ts | 33 +++++++++++++++++++++++++++++++++
+ tests/history-compressor.test.ts   | 32 ++++++++++++++++++++++++++++++++
+ 2 files changed, 65 insertions(+)
+
+=== Full Diff ===
+diff --git a/src/feedback/history-compressor.ts b/src/feedback/history-compressor.ts
+new file mode 100644
+index 0000000..5a38816
+--- /dev/null
++++ b/src/feedback/history-compressor.ts
+@@ -0,0 +1,33 @@
++import type { Round } from '../types.js';
++
++export function compressHistory(rounds: Round[], maxTokens: number): string {
++  if (rounds.length === 0) return '';
++  const maxChars = maxTokens * 4;
++  const lines: string[] = rounds.map(r => {
++    const actionDesc = formatAction(r.action);
++    const failureDesc = r.feedback ? `[${r.failureType || 'UNKNOWN'}]: ${r.feedback.failures.map(f => f.testName).join(', ')}` : 'no feedback';
++    return `Round ${r.roundNum}: ${actionDesc}, failed ${failureDesc}`;
++  });
++  let result = lines.join('\n');
++  if (result.length > maxChars) {
++    const truncated: string[] = [];
++    let totalLen = 0;
++    for (let i = lines.length - 1; i >= 0; i--) {
++      if (totalLen + lines[i].length + 1 > maxChars - 50) break;
++      truncated.unshift(lines[i]);
++      totalLen += lines[i].length + 1;
++    }
++    result = `[...earlier rounds truncated...]\n${truncated.join('\n')}`;
++  }
++  return result;
++}
++
++function formatAction(action: Round['action']): string {
++  switch (action.type) {
++    case 'write_file': return `write_file ${action.path}`;
++    case 'read_file': return `read_file ${action.path}`;
++    case 'run_shell': return `run_shell ${action.command.substring(0, 50)}`;
++    case 'run_tests': return 'run_tests';
++    default: return 'unknown action';
++  }
++}
+diff --git a/tests/history-compressor.test.ts b/tests/history-compressor.test.ts
+new file mode 100644
+index 0000000..011ec97
+--- /dev/null
++++ b/tests/history-compressor.test.ts
+@@ -0,0 +1,32 @@
++import { describe, it, expect } from 'vitest';
++import { compressHistory } from '../src/feedback/history-compressor.js';
++import type { Round } from '../src/types.js';
++
++function makeRound(num: number, failureType: string, testName: string): Round {
++  return {
++    id: num, taskId: 't1', roundNum: num, codeFiles: { 'solution.py': `# v${num}` },
++    action: { type: 'write_file', path: 'solution.py', content: `# v${num}` } as never,
++    feedback: { total: 3, passed: 2, failed: 1, failures: [{ testName, assertion: 'assert x', expected: '1', actual: '0', traceback: 't:1' }], failureType: failureType as never, rawReport: '' },
++    failureType: failureType as never, createdAt: '',
++  };
++}
++
++describe('HistoryCompressor', () => {
++  it('compresses a single round', () => {
++    const result = compressHistory([makeRound(1, 'ASSERTION_ERROR', 'test_a')], 2000);
++    expect(result).toContain('Round 1');
++    expect(result).toContain('ASSERTION_ERROR');
++  });
++  it('compresses multiple rounds', () => {
++    const result = compressHistory([makeRound(1, 'ASSERTION_ERROR', 'test_a'), makeRound(2, 'TIMEOUT', 'test_b')], 2000);
++    expect(result).toContain('Round 1');
++    expect(result).toContain('Round 2');
++  });
++  it('truncates when exceeding max tokens', () => {
++    const rounds = Array.from({ length: 20 }, (_, i) => makeRound(i + 1, 'ASSERTION_ERROR', `test_${i}`));
++    const result = compressHistory(rounds, 100);
++    expect(result.length).toBeLessThan(500);
++    expect(result).toContain('Round 20');
++  });
++  it('returns empty string for no rounds', () => { expect(compressHistory([], 2000)).toBe(''); });
++});

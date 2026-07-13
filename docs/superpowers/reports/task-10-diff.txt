@@ -1,0 +1,134 @@
+﻿=== Commits ===
+ed4f2d8 feat: repetition detector to prevent infinite loops
+
+=== Stat Summary ===
+ docs/superpowers/reports/task-10-report.md | 72 ++++++++++++++++++++++++++++++
+ src/feedback/repetition-detector.ts        | 14 ++++++
+ tests/repetition-detector.test.ts          | 20 +++++++++
+ 3 files changed, 106 insertions(+)
+
+=== Full Diff ===
+diff --git a/docs/superpowers/reports/task-10-report.md b/docs/superpowers/reports/task-10-report.md
+new file mode 100644
+index 0000000..5d02127
+--- /dev/null
++++ b/docs/superpowers/reports/task-10-report.md
+@@ -0,0 +1,72 @@
++# Task 10: Repetition Detector 鈥?Report
++
++## Status: DONE
++
++## What I Implemented
++
++Created the repetition detector, a pure function that detects when the LLM is stuck in a loop repeating the same failure pattern. This is part of the feedback loop that prevents infinite retries.
++
++- `src/feedback/repetition-detector.ts` 鈥?`detectRepetition(rounds: Round[], threshold: number): boolean`
++- `tests/repetition-detector.test.ts` 鈥?5 tests covering the detection logic
++
++### Logic
++
++`detectRepetition` returns `true` when the last `threshold` rounds all share the same failure signature. The signature (`failureKey`) is composed of:
++1. The round's `failureType` (falling back to `'UNKNOWN'` when null)
++2. The sorted, comma-joined list of failing test names from `round.feedback.failures`
++
++If there are fewer rounds than the threshold, it returns `false` immediately. Otherwise it slices the last `threshold` rounds and checks that every round's key equals the first round's key.
++
++## TDD Evidence
++
++Followed the plan's TDD steps exactly:
++
++1. **Step 1 (Write failing test):** Wrote `tests/repetition-detector.test.ts` with 5 test cases before any implementation existed.
++2. **Step 2 (Verify RED):** Ran `npx vitest run tests/repetition-detector.test.ts` 鈥?failed as expected:
++   ```
++   Error: Failed to load url ../src/feedback/repetition-detector.js ... Does the file exist?
++   ```
++3. **Step 3 (Write minimal implementation):** Created `src/feedback/repetition-detector.ts` with `detectRepetition` + private `failureKey` helper.
++4. **Step 4 (Verify GREEN):** Ran the same command 鈥?all 5 tests PASS.
++5. **Step 5 (Commit):** Committed with the plan's message.
++
++## Files Changed
++
++| File | Action |
++|------|--------|
++| `src/feedback/repetition-detector.ts` | Created (12 lines) |
++| `tests/repetition-detector.test.ts` | Created (22 lines) |
++
++## Test Summary
++
++- Targeted: `tests/repetition-detector.test.ts` 鈥?**5/5 passed**
++- Full suite: **9 test files, 43 tests, all passed**
++- Typecheck: `npx tsc --noEmit` 鈥?clean, no errors
++
++### Test cases
++
++| # | Case | Expected | Result |
++|---|------|----------|--------|
++| 1 | Fewer rounds than threshold | `false` | PASS |
++| 2 | Different failures across rounds | `false` | PASS |
++| 3 | 3 consecutive identical failures | `true` | PASS |
++| 4 | Only 2 of 3 identical (first differs) | `false` | PASS |
++| 5 | Last N identical after a differing earlier round | `true` | PASS |
++
++## Self-Review Findings
++
++- **Pure function:** No side effects, no I/O, no external state 鈥?matches the "pure function" contract in the plan.
++- **Convention match:** Uses `.js` extension in imports and `import type` for type-only imports, consistent with sibling files (`history-compressor.ts`, `failure-classifier.ts`). No comments added, per instructions.
++- **Edge cases handled:**
++  - `rounds.length < threshold` 鈫?`false` (short-circuit, avoids slicing beyond array).
++  - `round.failureType` is `null` 鈫?coerced to `'UNKNOWN'` so nulls don't break key equality.
++  - `round.feedback` is `null` 鈫?optional chaining yields `''` for test names.
++  - Test names are sorted before joining so order differences in `failures[]` don't cause false negatives.
++- **Threshold semantics:** The plan's test #5 confirms "last N" semantics (a differing earlier round is ignored), which `slice(-threshold)` correctly implements.
++- **No secrets, no hardcoded keys.** No new dependencies introduced.
++
++## Issues / Concerns
++
++None. The implementation matches the plan exactly, all tests pass, and the typecheck is clean. The function is a straightforward pure function with no external dependencies beyond the `Round` type.
++
++One minor observation (not a concern for this task): the `failureKey` sorts test names, which means two rounds with the same failure type and same set of failing tests 鈥?but in different order 鈥?are considered identical. This is the desired behavior for loop detection (the LLM is "stuck" if the same tests keep failing the same way), and is consistent with the plan's intent.
+diff --git a/src/feedback/repetition-detector.ts b/src/feedback/repetition-detector.ts
+new file mode 100644
+index 0000000..3a89b2a
+--- /dev/null
++++ b/src/feedback/repetition-detector.ts
+@@ -0,0 +1,14 @@
++import type { Round } from '../types.js';
++
++export function detectRepetition(rounds: Round[], threshold: number): boolean {
++  if (rounds.length < threshold) return false;
++  const lastN = rounds.slice(-threshold);
++  const firstKey = failureKey(lastN[0]);
++  return lastN.every(r => failureKey(r) === firstKey);
++}
++
++function failureKey(round: Round): string {
++  const failureType = round.failureType || 'UNKNOWN';
++  const testNames = round.feedback?.failures.map(f => f.testName).sort().join(',') || '';
++  return `${failureType}:${testNames}`;
++}
+diff --git a/tests/repetition-detector.test.ts b/tests/repetition-detector.test.ts
+new file mode 100644
+index 0000000..feec230
+--- /dev/null
++++ b/tests/repetition-detector.test.ts
+@@ -0,0 +1,20 @@
++import { describe, it, expect } from 'vitest';
++import { detectRepetition } from '../src/feedback/repetition-detector.js';
++import type { Round } from '../src/types.js';
++
++function makeRound(failureType: string, testName: string): Round {
++  return {
++    id: 1, taskId: 't1', roundNum: 1, codeFiles: {},
++    action: { type: 'write_file', path: 'x.py', content: 'x' } as never,
++    feedback: { total: 1, passed: 0, failed: 1, failures: [{ testName, assertion: '', expected: '', actual: '', traceback: '' }], failureType: failureType as never, rawReport: '' },
++    failureType: failureType as never, createdAt: '',
++  };
++}
++
++describe('RepetitionDetector', () => {
++  it('returns false for fewer than threshold rounds', () => { expect(detectRepetition([makeRound('ASSERTION_ERROR', 'test_a')], 3)).toBe(false); });
++  it('returns false for different failures', () => { expect(detectRepetition([makeRound('ASSERTION_ERROR', 'test_a'), makeRound('TIMEOUT', 'test_b'), makeRound('IMPORT_ERROR', 'test_c')], 3)).toBe(false); });
++  it('returns true for 3 consecutive identical failures', () => { expect(detectRepetition([makeRound('ASSERTION_ERROR', 'test_a'), makeRound('ASSERTION_ERROR', 'test_a'), makeRound('ASSERTION_ERROR', 'test_a')], 3)).toBe(true); });
++  it('returns false when only 2 of 3 are identical', () => { expect(detectRepetition([makeRound('TIMEOUT', 'test_b'), makeRound('ASSERTION_ERROR', 'test_a'), makeRound('ASSERTION_ERROR', 'test_a')], 3)).toBe(false); });
++  it('returns true when last N rounds are identical', () => { expect(detectRepetition([makeRound('TIMEOUT', 'test_b'), makeRound('ASSERTION_ERROR', 'test_a'), makeRound('ASSERTION_ERROR', 'test_a'), makeRound('ASSERTION_ERROR', 'test_a')], 3)).toBe(true); });
++});

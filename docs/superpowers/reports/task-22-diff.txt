@@ -1,0 +1,125 @@
+﻿=== Commits ===
+e2d636c feat: mechanism demos (D1 guardrail, D2 feedback loop, D3 repetition)
+
+=== Stat Summary ===
+ tests/mechanism-demo.test.ts | 111 +++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 111 insertions(+)
+
+=== Full Diff ===
+diff --git a/tests/mechanism-demo.test.ts b/tests/mechanism-demo.test.ts
+new file mode 100644
+index 0000000..156b51c
+--- /dev/null
++++ b/tests/mechanism-demo.test.ts
+@@ -0,0 +1,111 @@
++// tests/mechanism-demo.test.ts
++import { describe, it, expect, vi } from 'vitest';
++import { AgentLoop } from '../src/agent/agent-loop.js';
++import { MockLLM } from '../src/llm/mock-llm.js';
++import { EventBus } from '../src/event-bus/event-bus.js';
++import { MemoryStore } from '../src/memory/memory-store.js';
++import { Guardrail } from '../src/guardrail/guardrail.js';
++import { HitlStateMachine } from '../src/guardrail/hitl-state-machine.js';
++import type { Config, Task } from '../src/types.js';
++import { mkdtempSync, rmSync } from 'fs';
++import { join } from 'path';
++import { tmpdir } from 'os';
++
++const config: Config = {
++  llm: { model: 'test', temperature: 0, maxTokens: 100, apiBase: '' },
++  agent: { maxRetries: 5, timeoutSeconds: 30, repetitionThreshold: 3, maxHistoryTokens: 2000 },
++  guardrail: { enableHitl: true, hitlTimeoutSeconds: 30, blockedPatterns: ['rm\\s+-rf\\s+/'], approvalPatterns: ['sudo\\s+'] },
++  docker: { image: 'test', workDir: '/workspace', memoryLimit: '256m' },
++  debug: false,
++};
++
++function makeTask(): Task {
++  return { id: 'demo-1', description: 'Implement a stack', testFiles: { 'test_stack.py': 'def test_push(): pass' }, status: 'running', createdAt: new Date().toISOString(), finishedAt: null };
++}
++
++function mockToolRouter(passing: boolean) {
++  return {
++    dockerExec: { createContainer: vi.fn().mockResolvedValue('c1'), remove: vi.fn().mockResolvedValue(undefined), writeFile: vi.fn().mockResolvedValue(undefined) },
++    dispatch: vi.fn().mockImplementation(async (action: { type: string }) => {
++      if (action.type === 'run_tests') return { feedbackSignal: passing ? { total: 1, passed: 1, failed: 0, failures: [], failureType: 'RUNTIME_ERROR', rawReport: '' } : { total: 1, passed: 0, failed: 1, failures: [{ testName: 'test_a', assertion: 'AssertionError: assert 1 == 2', expected: '2', actual: '1', traceback: '' }], failureType: 'ASSERTION_ERROR', rawReport: '' } };
++      return { success: true };
++    }),
++  };
++}
++
++describe('Mechanism Demos (搂A.6)', () => {
++  describe('D1: Guardrail intercepts dangerous action', () => {
++    it('blocks rm -rf / and continues to success', async () => {
++      const bus = new EventBus();
++      const dbPath = join(mkdtempSync(join(tmpdir(), 'demo-')), 't.db');
++      const memory = new MemoryStore(dbPath);
++      const task = makeTask(); memory.saveTask(task);
++      const mockLLM = new MockLLM([
++        { type: 'run_shell', command: 'rm -rf /' },
++        { type: 'write_file', path: '/workspace/stack.py', content: 'class Stack: pass' },
++        { type: 'run_tests' },
++      ]);
++      const events: string[] = [];
++      bus.on('guardrail:checked', (p) => events.push(`${p.result.decision}:${p.action.type}`));
++
++      const loop = new AgentLoop({ llm: mockLLM, guardrail: new Guardrail(config), hitl: new HitlStateMachine(bus, 30), toolRouter: mockToolRouter(true) as never, memory, bus, config });
++      const status = await loop.run(task);
++      expect(status).toBe('success');
++      expect(events).toContain('BLOCK:run_shell');
++      memory.close(); rmSync(dbPath);
++    });
++  });
++
++  describe('D2: Feedback loop drives self-correction', () => {
++    it('fails round 1, gets feedback, succeeds round 2', async () => {
++      const bus = new EventBus();
++      const dbPath = join(mkdtempSync(join(tmpdir(), 'demo-')), 't.db');
++      const memory = new MemoryStore(dbPath);
++      const task = makeTask(); memory.saveTask(task);
++      const mockLLM = new MockLLM([
++        { type: 'write_file', path: '/workspace/stack.py', content: 'class Stack: pass' },
++        { type: 'run_tests' },
++        { type: 'write_file', path: '/workspace/stack.py', content: 'class Stack:\n    def push(self, v): self.items.append(v)' },
++        { type: 'run_tests' },
++      ]);
++      const toolRouter = mockToolRouter(false);
++      let callCount = 0;
++      toolRouter.dispatch = vi.fn().mockImplementation(async (action: { type: string }) => {
++        if (action.type === 'run_tests') {
++          callCount++;
++          const passing = callCount > 1;
++          return { feedbackSignal: passing ? { total: 1, passed: 1, failed: 0, failures: [], failureType: 'RUNTIME_ERROR', rawReport: '' } : { total: 1, passed: 0, failed: 1, failures: [{ testName: 'test_a', assertion: 'AssertionError: assert 1 == 2', expected: '2', actual: '1', traceback: '' }], failureType: 'ASSERTION_ERROR', rawReport: '' } };
++        }
++        return { success: true };
++      }) as never;
++
++      const loop = new AgentLoop({ llm: mockLLM, guardrail: new Guardrail(config), hitl: new HitlStateMachine(bus, 30), toolRouter, memory, bus, config });
++      const status = await loop.run(task);
++      expect(status).toBe('success');
++      expect(callCount).toBe(2);
++      memory.close(); rmSync(dbPath);
++    });
++  });
++
++  describe('D3: Repetition detection terminates early', () => {
++    it('detects 3 identical failures and stops before max_retries', async () => {
++      const bus = new EventBus();
++      const dbPath = join(mkdtempSync(join(tmpdir(), 'demo-')), 't.db');
++      const memory = new MemoryStore(dbPath);
++      const task = makeTask(); memory.saveTask(task);
++      const mockLLM = new MockLLM([
++        { type: 'run_tests' },
++        { type: 'run_tests' },
++        { type: 'run_tests' },
++      ]);
++      let stopped = false;
++      bus.on('agent:stopped', (p) => { if (p.reason.includes('Repetition')) stopped = true; });
++
++      const loop = new AgentLoop({ llm: mockLLM, guardrail: new Guardrail(config), hitl: new HitlStateMachine(bus, 30), toolRouter: mockToolRouter(false) as never, memory, bus, config });
++      const status = await loop.run(task);
++      expect(status).toBe('failure');
++      expect(stopped).toBe(true);
++      memory.close(); rmSync(dbPath);
++    });
++  });
++});

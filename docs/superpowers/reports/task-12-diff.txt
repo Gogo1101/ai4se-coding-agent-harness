@@ -1,0 +1,70 @@
+﻿=== Commits ===
+8b1f6bb feat: action parser for LLM JSON output
+
+=== Stat Summary ===
+ src/agent/action-parser.ts  | 31 +++++++++++++++++++++++++++++++
+ tests/action-parser.test.ts | 18 ++++++++++++++++++
+ 2 files changed, 49 insertions(+)
+
+=== Full Diff ===
+diff --git a/src/agent/action-parser.ts b/src/agent/action-parser.ts
+new file mode 100644
+index 0000000..98f5c4e
+--- /dev/null
++++ b/src/agent/action-parser.ts
+@@ -0,0 +1,31 @@
++import type { Action } from '../types.js';
++
++export function parseAction(content: string): Action {
++  const jsonStr = extractJson(content);
++  let parsed: unknown;
++  try { parsed = JSON.parse(jsonStr); } catch { throw new Error(`Failed to parse LLM output as JSON: ${content.substring(0, 100)}`); }
++  const obj = parsed as { action?: string; path?: string; content?: string; command?: string };
++  if (!obj.action) throw new Error('LLM output missing "action" field');
++  switch (obj.action) {
++    case 'write_file':
++      if (!obj.path || obj.content === undefined) throw new Error('write_file requires "path" and "content"');
++      return { type: 'write_file', path: obj.path, content: obj.content };
++    case 'read_file':
++      if (!obj.path) throw new Error('read_file requires "path"');
++      return { type: 'read_file', path: obj.path };
++    case 'run_shell':
++      if (!obj.command) throw new Error('run_shell requires "command"');
++      return { type: 'run_shell', command: obj.command };
++    case 'run_tests':
++      return { type: 'run_tests' };
++    default:
++      throw new Error(`Unknown action type: ${obj.action}`);
++  }
++}
++
++function extractJson(content: string): string {
++  const trimmed = content.trim();
++  const codeBlockMatch = trimmed.match(/```(?:json)?\s*\n?([\s\S]*?)\n?```/);
++  if (codeBlockMatch) return codeBlockMatch[1].trim();
++  return trimmed;
++}
+diff --git a/tests/action-parser.test.ts b/tests/action-parser.test.ts
+new file mode 100644
+index 0000000..40de60b
+--- /dev/null
++++ b/tests/action-parser.test.ts
+@@ -0,0 +1,18 @@
++import { describe, it, expect } from 'vitest';
++import { parseAction } from '../src/agent/action-parser.js';
++
++describe('ActionParser', () => {
++  it('parses write_file action', () => {
++    const action = parseAction('{"action": "write_file", "path": "stack.py", "content": "class Stack: pass"}');
++    expect(action).toEqual({ type: 'write_file', path: 'stack.py', content: 'class Stack: pass' });
++  });
++  it('parses run_tests action', () => { expect(parseAction('{"action": "run_tests"}').type).toBe('run_tests'); });
++  it('parses run_shell action', () => { expect(parseAction('{"action": "run_shell", "command": "echo hello"}')).toEqual({ type: 'run_shell', command: 'echo hello' }); });
++  it('parses read_file action', () => { expect(parseAction('{"action": "read_file", "path": "stack.py"}').type).toBe('read_file'); });
++  it('throws on invalid JSON', () => { expect(() => parseAction('not json')).toThrow(); });
++  it('throws on unknown action type', () => { expect(() => parseAction('{"action": "fly"}')).toThrow(); });
++  it('throws on missing required fields', () => { expect(() => parseAction('{"action": "write_file"}')).toThrow(); });
++  it('extracts JSON from markdown code block', () => {
++    expect(parseAction('```json\n{"action": "run_tests"}\n```').type).toBe('run_tests');
++  });
++});

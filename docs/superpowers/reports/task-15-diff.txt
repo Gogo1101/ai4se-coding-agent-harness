@@ -1,0 +1,164 @@
+﻿=== Commits ===
+877e1ed feat: tool router for dispatching actions to Docker
+
+=== Stat Summary ===
+ docs/superpowers/reports/task-15-report.md | 63 ++++++++++++++++++++++++++++++
+ src/tools/tool-router.ts                   | 28 +++++++++++++
+ tests/tool-router.test.ts                  | 45 +++++++++++++++++++++
+ 3 files changed, 136 insertions(+)
+
+=== Full Diff ===
+diff --git a/docs/superpowers/reports/task-15-report.md b/docs/superpowers/reports/task-15-report.md
+new file mode 100644
+index 0000000..0c97e78
+--- /dev/null
++++ b/docs/superpowers/reports/task-15-report.md
+@@ -0,0 +1,63 @@
++# Task 15: Tool Router 鈥?Report
++
++## Status: DONE
++
++## What I Implemented
++
++Created the `ToolRouter` class 鈥?a dispatcher that routes `Action` objects to the appropriate `DockerExec` method inside a running container.
++
++- `src/tools/tool-router.ts` 鈥?`ToolRouter` class with `dispatch(action, containerId)` method
++- `tests/tool-router.test.ts` 鈥?4 tests with a mocked `DockerExec`
++
++### Behavior
++
++`ToolRouter.dispatch(action, containerId)` switches on `action.type`:
++
++| Action type     | DockerExec call                          | Return value                                    |
++|-----------------|------------------------------------------|-------------------------------------------------|
++| `write_file`    | `writeFile(containerId, path, content)`  | `{ success: true }`                             |
++| `read_file`     | `readFile(containerId, path)`            | `{ content: <string> }`                         |
++| `run_shell`     | `exec(containerId, command)`             | `ExecResult { stdout, stderr, exitCode }`       |
++| `run_tests`     | `exec(containerId, 'pytest --json-report --tb=short 2>/dev/null || true')` then `parseTestResult` | `{ feedbackSignal: FeedbackSignal }` |
++| default          | 鈥?                                       | throws `Unknown action type`                     |
++
++For `run_tests`, the stdout is JSON-parsed; if parsing fails it falls back to an empty report so `parseTestResult` still returns a valid `FeedbackSignal`.
++
++The `dockerExec` field is public so the agent loop (Task 17) can call `createContainer` / `writeFile` / `remove` directly.
++
++## TDD Evidence
++
++Followed the red 鈫?green 鈫?refactor cycle exactly as specified in PLAN.md Task 15.
++
++1. **Red** 鈥?Wrote `tests/tool-router.test.ts` (4 tests) before any implementation existed.
++   - Ran `npx vitest run tests/tool-router.test.ts`
++   - Result: FAIL 鈥?`Failed to load url ../src/tools/tool-router.js ... Does the file exist?`
++2. **Green** 鈥?Wrote `src/tools/tool-router.ts` (minimal implementation from the plan).
++   - Ran `npx vitest run tests/tool-router.test.ts`
++   - Result: **4 tests PASS** (4 ms)
++3. **Refactor** 鈥?No refactor needed; implementation is already minimal and matches the plan verbatim.
++
++## Files Changed
++
++| File | Status | Lines |
++|------|--------|-------|
++| `src/tools/tool-router.ts` | created | 30 |
++| `tests/tool-router.test.ts` | created | 51 |
++
++## Verification
++
++- `npx vitest run tests/tool-router.test.ts` 鈫?4 passed (4 ms)
++- `npx vitest run` (full suite) 鈫?**14 test files, 65 tests, all passed**
++- `npx tsc --noEmit` 鈫?no errors
++
++## Self-Review Findings
++
++- The implementation matches the plan's reference implementation exactly; no deviations.
++- The `dockerExec` field is intentionally public (per the plan) because Task 17's `AgentLoop` accesses `toolRouter.dockerExec.createContainer(...)` and `toolRouter.dockerExec.remove(...)` directly. This is confirmed by the Task 17 test fixture `mockToolRouter` which exposes a `dockerExec` property.
++- The `run_tests` command uses `2>/dev/null || true` so a non-zero pytest exit (tests failing) does not abort the shell; the JSON report is still emitted on stdout and parsed.
++- The `default` branch cast `(action as Action).type` is a safe no-op since the switch is exhaustive over the `Action` union; it exists purely to satisfy the exhaustiveness check and would only trigger if the type system were bypassed.
++- No comments were added to the source files (per project constraint).
++
++## Issues / Concerns
++
++None. The task is self-contained, depends only on Task 14 (`DockerExec`) and Task 7 (`parseTestResult`), both of which are complete and unchanged. The mocked `DockerExec` in the test isolates this task from real Docker, so no Docker daemon is required.
+diff --git a/src/tools/tool-router.ts b/src/tools/tool-router.ts
+new file mode 100644
+index 0000000..34f28a0
+--- /dev/null
++++ b/src/tools/tool-router.ts
+@@ -0,0 +1,28 @@
++import type { Action, Config, FeedbackSignal } from '../types.js';
++import { DockerExec } from './docker-exec.js';
++import { parseTestResult } from '../feedback/feedback-parser.js';
++
++export class ToolRouter {
++  dockerExec: DockerExec;
++  constructor(private config: Config) { this.dockerExec = new DockerExec(config); }
++
++  async dispatch(action: Action, containerId: string): Promise<unknown> {
++    switch (action.type) {
++      case 'write_file':
++        await this.dockerExec.writeFile(containerId, action.path, action.content);
++        return { success: true };
++      case 'read_file':
++        return { content: await this.dockerExec.readFile(containerId, action.path) };
++      case 'run_shell':
++        return await this.dockerExec.exec(containerId, action.command);
++      case 'run_tests': {
++        const result = await this.dockerExec.exec(containerId, 'pytest --json-report --tb=short 2>/dev/null || true');
++        let report: unknown;
++        try { report = JSON.parse(result.stdout); } catch { report = { tests: [], summary: { total: 0, passed: 0, failed: 0 } }; }
++        return { feedbackSignal: parseTestResult(report) };
++      }
++      default:
++        throw new Error(`Unknown action type: ${(action as Action).type}`);
++    }
++  }
++}
+diff --git a/tests/tool-router.test.ts b/tests/tool-router.test.ts
+new file mode 100644
+index 0000000..69d084c
+--- /dev/null
++++ b/tests/tool-router.test.ts
+@@ -0,0 +1,45 @@
++import { describe, it, expect, vi } from 'vitest';
++import { ToolRouter } from '../src/tools/tool-router.js';
++import type { Config } from '../src/types.js';
++
++const config: Config = {
++  llm: { model: 'test', temperature: 0, maxTokens: 100, apiBase: '' },
++  agent: { maxRetries: 5, timeoutSeconds: 30, repetitionThreshold: 3, maxHistoryTokens: 2000 },
++  guardrail: { enableHitl: true, hitlTimeoutSeconds: 30, blockedPatterns: [], approvalPatterns: [] },
++  docker: { image: 'test', workDir: '/workspace', memoryLimit: '256m' },
++  debug: false,
++};
++
++vi.mock('../src/tools/docker-exec.js', () => ({
++  DockerExec: vi.fn().mockImplementation(() => ({
++    writeFile: vi.fn().mockResolvedValue(undefined),
++    readFile: vi.fn().mockResolvedValue('file content'),
++    exec: vi.fn().mockResolvedValue({ stdout: '{"tests":[],"summary":{"total":0,"passed":0,"failed":0}}', stderr: '', exitCode: 0 }),
++    createContainer: vi.fn().mockResolvedValue('c1'),
++    remove: vi.fn().mockResolvedValue(undefined),
++  })),
++}));
++
++describe('ToolRouter', () => {
++  it('dispatches write_file', async () => {
++    const router = new ToolRouter(config);
++    const result = await router.dispatch({ type: 'write_file', path: '/workspace/stack.py', content: 'x' }, 'c1');
++    expect(result).toEqual({ success: true });
++  });
++  it('dispatches read_file', async () => {
++    const router = new ToolRouter(config);
++    const result = await router.dispatch({ type: 'read_file', path: '/workspace/stack.py' }, 'c1');
++    expect(result).toEqual({ content: 'file content' });
++  });
++  it('dispatches run_shell', async () => {
++    const router = new ToolRouter(config);
++    const result = await router.dispatch({ type: 'run_shell', command: 'echo hello' }, 'c1');
++    expect(result).toHaveProperty('stdout');
++  });
++  it('dispatches run_tests and returns FeedbackSignal', async () => {
++    const router = new ToolRouter(config);
++    const result = await router.dispatch({ type: 'run_tests' }, 'c1') as { feedbackSignal: { total: number; passed: number; failed: number } };
++    expect(result.feedbackSignal).toBeDefined();
++    expect(result.feedbackSignal.total).toBe(0);
++  });
++});
