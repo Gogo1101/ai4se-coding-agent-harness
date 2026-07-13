@@ -2,7 +2,7 @@ llm:
   model: "deepseek-v4-pro"
   temperature: 0.3
   max_tokens: 4096
-  api_base: ""
+  api_base: "https://njusehub.info/v1"
 agent:
   max_retries: 5
   timeout_seconds: 30
