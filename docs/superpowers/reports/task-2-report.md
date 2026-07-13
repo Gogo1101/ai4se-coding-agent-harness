@@ -71,3 +71,36 @@ All 3 tests pass:
 
 - **Minor (non-blocking)**: The shallow-copy of `DEFAULT_CONFIG` means nested objects are shared across calls. If a downstream consumer mutates `config.llm.model`, it would corrupt the default for subsequent calls. This is acceptable for Task 2's scope but worth noting for the agent-loop integration in later tasks. A one-line fix (`structuredClone(DEFAULT_CONFIG)`) would address it if it becomes a problem.
 - **No concern** regarding the test/implementation correctness — all tests pass and TypeScript compiles cleanly.
+
+## Fix Report: Deep Copy of DEFAULT_CONFIG
+
+### Issue
+
+In `src/config/config-loader.ts`, `loadConfig` returned `{ ...DEFAULT_CONFIG }` and `validateConfig` started from `{ ...DEFAULT_CONFIG }`. Both are shallow copies, so nested objects (`llm`, `agent`, `guardrail`, `docker`) were shared references to `DEFAULT_CONFIG`'s children. Any downstream consumer that mutated `config.llm.model` would corrupt the default for all subsequent calls.
+
+### Fix Applied
+
+Replaced the shallow spread copy with `structuredClone(DEFAULT_CONFIG)` in both places:
+
+1. `loadConfig` (line 19): `return { ...DEFAULT_CONFIG }` → `return structuredClone(DEFAULT_CONFIG)`
+2. `validateConfig` (line 26): `const config = { ...DEFAULT_CONFIG }` → `const config = structuredClone(DEFAULT_CONFIG)`
+
+### Verification
+
+Command: `npx vitest run tests/config-loader.test.ts`
+
+```
+ ✓  tests/config-loader.test.ts (3 tests) 11ms
+
+ Test Files  1 passed (1)
+      Tests  3 passed (3)
+```
+
+All 3 existing tests still pass:
+1. `loads a valid config file` — PASS
+2. `uses defaults when file is missing` — PASS
+3. `throws on invalid config schema` — PASS
+
+### Resolution of Self-Review Finding
+
+This fix resolves the "Minor (non-blocking)" concern noted in the Self-Review Findings above. The shallow-copy issue is eliminated; nested objects are now deep-cloned on every `loadConfig` / `validateConfig` call, so downstream mutation of returned config cannot corrupt `DEFAULT_CONFIG`.

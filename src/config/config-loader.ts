@@ -16,14 +16,14 @@ const DEFAULT_CONFIG: Config = {
 };
 
 export function loadConfig(path: string): Config {
-  if (!existsSync(path)) return { ...DEFAULT_CONFIG };
+  if (!existsSync(path)) return structuredClone(DEFAULT_CONFIG);
   const raw = readFileSync(path, 'utf-8');
   const parsed = yaml.load(raw) as Record<string, unknown>;
   return validateConfig(parsed);
 }
 
 function validateConfig(parsed: Record<string, unknown>): Config {
-  const config = { ...DEFAULT_CONFIG };
+  const config = structuredClone(DEFAULT_CONFIG);
   if (parsed.llm && typeof parsed.llm === 'object') {
     const llm = parsed.llm as Record<string, unknown>;
     if (llm.model !== undefined) { if (typeof llm.model !== 'string') throw new Error('llm.model must be string'); config.llm.model = llm.model; }
