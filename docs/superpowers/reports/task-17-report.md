@@ -139,3 +139,66 @@ The `finally` block ensures the Docker container is removed even if the loop thr
 4. **`codeFiles` not populated:** The `Round` objects saved to memory have `codeFiles: {}` (empty). For `write_file` actions, the written file path and content could be recorded in `codeFiles` for better history tracking. This is a minor enhancement, not a bug.
 
 5. **Windows-specific test fix:** The `memory.close()` addition is necessary for Windows but deviates from the plan's exact test code. On Linux/macOS, `rmSync` might succeed even with an open file handle, so the plan's code might work there without the fix.
+
+---
+
+## Fix Report (Post-Review)
+
+### Status: DONE
+
+### Fixes Applied
+
+#### Critical 1: HITL rejection path fixed
+
+**Problem:** The HITL approval handler only checked `p.taskId === task.id` but ignored the `approved: boolean` field. After `hitl.reset()`, the loop proceeded to `toolRouter.dispatch(action, ...)` regardless of approval outcome — a rejected action still executed (safety violation).
+
+**Fix:** The promise handler now captures `p.approved` into an `approved` variable. After `hitl.reset()`, if `!approved`, the loop sets `currentFailure` to a rejection feedback signal (`Rejected: <reason>`), saves the round, emits `round:completed`, and `continue`s to the next round without dispatching the action.
+
+**File:** `src/agent/agent-loop.ts` — REQUIRE_APPROVAL block.
+
+#### Critical 2: HITL flow tests added
+
+**Problem:** No test triggered `REQUIRE_APPROVAL`.
+
+**Fix:** Added two tests:
+- `executes action after HITL approval` — MockLLM emits `sudo apt-get install foo` (matches `sudo\s+` approval pattern). A `guardrail:approval_requested` listener calls `hitl.approve(task.id)` via `setTimeout(..., 0)` (ensuring the response handler is registered first). Verifies `router.dispatch` was called with the sudo command.
+- `skips action after HITL rejection` — Same setup but calls `hitl.reject(task.id)`. Verifies `router.dispatch` was **not** called with the sudo command (action skipped).
+
+**File:** `tests/agent-loop.test.ts`
+
+#### Important 1: Error event emission added
+
+**Problem:** `EventTypes` defines `'error': { taskId: string; error: string }`, but the agent loop never emitted it. Unexpected exceptions propagated without notification.
+
+**Fix:** Wrapped the entire round body (context assembly through repetition detection) in a `try/catch`. On catch: emits `error` with the error message, sets `currentFailure` to an error feedback signal, saves a round (using `lastAction` captured before the error), emits `round:completed`, and `continue`s. A `lastAction` variable is tracked outside the try so the catch block can record which action was in progress when the error occurred.
+
+**File:** `src/agent/agent-loop.ts` — round body try/catch.
+
+#### Important 2: Repetition detection test added
+
+**Problem:** No test exercised the repetition threshold path.
+
+**Fix:** Added test `detects repetition and terminates early` — MockLLM emits `run_tests` 3 times (N = `repetitionThreshold = 3`). The mock tool router returns the same failing feedback each time (same failure type, same test name). After 3 rounds, `detectRepetition` returns true, the loop emits `agent:stopped` and returns `'failure'`. Verified by asserting `mockLLM.callCount === 3` (early termination before `maxRetries = 5`).
+
+**File:** `tests/agent-loop.test.ts`
+
+### Additional Test: Error event
+
+Added test `emits error event on round failure and continues` — `router.dispatch.mockImplementationOnce` throws on the first call. Verifies the `error` event is emitted with the error message and the loop continues to succeed on subsequent rounds.
+
+### Verification
+
+```
+npx vitest run tests/agent-loop.test.ts
+  tests/agent-loop.test.ts (7 tests) 200ms
+  Test Files: 1 passed (1)
+  Tests: 7 passed (7)
+
+npx vitest run
+  Test Files: 16 passed (16)
+  Tests: 77 passed (77)
+  Duration: 1.94s
+
+npx tsc --noEmit
+  (no errors)
+```

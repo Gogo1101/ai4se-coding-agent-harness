@@ -31,54 +31,79 @@ export class AgentLoop {
     try {
       for (let roundNum = 1; roundNum <= config.agent.maxRetries; roundNum++) {
         bus.emit('round:started', { taskId: task.id, roundNum });
-        const context = assembleContext({ task: task.description, testFiles: task.testFiles, config, rounds, currentFailure });
-        bus.emit('llm:called', { taskId: task.id, roundNum, context });
-        const response = await llm.generate(context);
-        bus.emit('llm:responded', { taskId: task.id, roundNum, response });
-        let action: Action;
+        let lastAction: Action = { type: 'run_tests' };
         try {
-          action = parseAction(response.content);
-        } catch {
-          action = response.action;
-        }
-        bus.emit('action:parsed', { taskId: task.id, roundNum, action });
-        const gr = guardrail.checkAction(action);
-        bus.emit('guardrail:checked', { taskId: task.id, action, result: gr });
-        if (gr.decision === 'BLOCK') {
-          currentFailure = { total: 0, passed: 0, failed: 0, failures: [], failureType: 'RUNTIME_ERROR', rawReport: `Blocked: ${gr.reason}` };
-          const r: Round = { id: 0, taskId: task.id, roundNum, codeFiles: {}, action, feedback: currentFailure, failureType: 'RUNTIME_ERROR', createdAt: new Date().toISOString() };
-          rounds.push(r); memory.saveRound(r); bus.emit('round:completed', { taskId: task.id, roundNum, feedback: currentFailure }); continue;
-        }
-        if (gr.decision === 'REQUIRE_APPROVAL') {
-          hitl.requestApproval(task.id, action, gr.reason);
-          await new Promise<void>((resolve) => { const h = (p: { taskId: string }) => { if (p.taskId === task.id) { bus.off('guardrail:approval_responded', h); resolve(); } }; bus.on('guardrail:approval_responded', h); });
-          hitl.reset();
-        }
-        const result = await toolRouter.dispatch(action, containerId) as { feedbackSignal?: FeedbackSignal };
-        bus.emit('tool:executed', { taskId: task.id, action, result });
-        let roundFeedback: FeedbackSignal | null = null;
-        let failureType: FailureType | null = null;
-        if (action.type === 'run_tests' && result.feedbackSignal) {
-          roundFeedback = result.feedbackSignal;
-          failureType = classifyFailure(roundFeedback);
-          if (roundFeedback.failed === 0) {
-            const r: Round = { id: 0, taskId: task.id, roundNum, codeFiles: {}, action, feedback: roundFeedback, failureType, createdAt: new Date().toISOString() };
-            rounds.push(r); memory.saveRound(r);
-            bus.emit('round:completed', { taskId: task.id, roundNum, feedback: roundFeedback });
-            memory.updateTaskStatus(task.id, 'success');
-            bus.emit('task:completed', { taskId: task.id, status: 'success' });
-            return 'success';
+          const context = assembleContext({ task: task.description, testFiles: task.testFiles, config, rounds, currentFailure });
+          bus.emit('llm:called', { taskId: task.id, roundNum, context });
+          const response = await llm.generate(context);
+          bus.emit('llm:responded', { taskId: task.id, roundNum, response });
+          let action: Action;
+          try {
+            action = parseAction(response.content);
+          } catch {
+            action = response.action;
           }
-          currentFailure = roundFeedback;
-        }
-        const r: Round = { id: 0, taskId: task.id, roundNum, codeFiles: {}, action, feedback: roundFeedback, failureType, createdAt: new Date().toISOString() };
-        rounds.push(r); memory.saveRound(r);
-        bus.emit('round:completed', { taskId: task.id, roundNum, feedback: roundFeedback });
-        if (detectRepetition(rounds, config.agent.repetitionThreshold)) {
-          bus.emit('agent:stopped', { taskId: task.id, reason: 'Repetition detected' });
-          memory.updateTaskStatus(task.id, 'failure');
-          bus.emit('task:completed', { taskId: task.id, status: 'failure' });
-          return 'failure';
+          lastAction = action;
+          bus.emit('action:parsed', { taskId: task.id, roundNum, action });
+          const gr = guardrail.checkAction(action);
+          bus.emit('guardrail:checked', { taskId: task.id, action, result: gr });
+          if (gr.decision === 'BLOCK') {
+            currentFailure = { total: 0, passed: 0, failed: 0, failures: [], failureType: 'RUNTIME_ERROR', rawReport: `Blocked: ${gr.reason}` };
+            const r: Round = { id: 0, taskId: task.id, roundNum, codeFiles: {}, action, feedback: currentFailure, failureType: 'RUNTIME_ERROR', createdAt: new Date().toISOString() };
+            rounds.push(r); memory.saveRound(r); bus.emit('round:completed', { taskId: task.id, roundNum, feedback: currentFailure }); continue;
+          }
+          if (gr.decision === 'REQUIRE_APPROVAL') {
+            hitl.requestApproval(task.id, action, gr.reason);
+            let approved = false;
+            await new Promise<void>((resolve) => {
+              const h = (p: { taskId: string; approved: boolean }) => {
+                if (p.taskId === task.id) {
+                  bus.off('guardrail:approval_responded', h);
+                  approved = p.approved;
+                  resolve();
+                }
+              };
+              bus.on('guardrail:approval_responded', h);
+            });
+            hitl.reset();
+            if (!approved) {
+              currentFailure = { total: 0, passed: 0, failed: 0, failures: [], failureType: 'RUNTIME_ERROR', rawReport: `Rejected: ${gr.reason}` };
+              const r: Round = { id: 0, taskId: task.id, roundNum, codeFiles: {}, action, feedback: currentFailure, failureType: 'RUNTIME_ERROR', createdAt: new Date().toISOString() };
+              rounds.push(r); memory.saveRound(r); bus.emit('round:completed', { taskId: task.id, roundNum, feedback: currentFailure }); continue;
+            }
+          }
+          const result = await toolRouter.dispatch(action, containerId) as { feedbackSignal?: FeedbackSignal };
+          bus.emit('tool:executed', { taskId: task.id, action, result });
+          let roundFeedback: FeedbackSignal | null = null;
+          let failureType: FailureType | null = null;
+          if (action.type === 'run_tests' && result.feedbackSignal) {
+            roundFeedback = result.feedbackSignal;
+            failureType = classifyFailure(roundFeedback);
+            if (roundFeedback.failed === 0) {
+              const r: Round = { id: 0, taskId: task.id, roundNum, codeFiles: {}, action, feedback: roundFeedback, failureType, createdAt: new Date().toISOString() };
+              rounds.push(r); memory.saveRound(r);
+              bus.emit('round:completed', { taskId: task.id, roundNum, feedback: roundFeedback });
+              memory.updateTaskStatus(task.id, 'success');
+              bus.emit('task:completed', { taskId: task.id, status: 'success' });
+              return 'success';
+            }
+            currentFailure = roundFeedback;
+          }
+          const r: Round = { id: 0, taskId: task.id, roundNum, codeFiles: {}, action, feedback: roundFeedback, failureType, createdAt: new Date().toISOString() };
+          rounds.push(r); memory.saveRound(r);
+          bus.emit('round:completed', { taskId: task.id, roundNum, feedback: roundFeedback });
+          if (detectRepetition(rounds, config.agent.repetitionThreshold)) {
+            bus.emit('agent:stopped', { taskId: task.id, reason: 'Repetition detected' });
+            memory.updateTaskStatus(task.id, 'failure');
+            bus.emit('task:completed', { taskId: task.id, status: 'failure' });
+            return 'failure';
+          }
+        } catch (err) {
+          bus.emit('error', { taskId: task.id, error: (err as Error).message });
+          currentFailure = { total: 0, passed: 0, failed: 0, failures: [], failureType: 'RUNTIME_ERROR', rawReport: `Error: ${(err as Error).message}` };
+          const r: Round = { id: 0, taskId: task.id, roundNum, codeFiles: {}, action: lastAction, feedback: currentFailure, failureType: 'RUNTIME_ERROR', createdAt: new Date().toISOString() };
+          rounds.push(r); memory.saveRound(r); bus.emit('round:completed', { taskId: task.id, roundNum, feedback: currentFailure });
+          continue;
         }
       }
       bus.emit('agent:stopped', { taskId: task.id, reason: `Max retries (${config.agent.maxRetries}) reached` });
