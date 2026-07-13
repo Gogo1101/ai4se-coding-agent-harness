@@ -40,6 +40,10 @@ describe('Guardrail', () => {
     const g = new Guardrail(config);
     expect(g.checkAction({ type: 'write_file', path: '/etc/passwd', content: 'x' }).decision).toBe('BLOCK');
   });
+  it('blocks path traversal via ../', () => {
+    const g = new Guardrail(config);
+    expect(g.checkAction({ type: 'write_file', path: '../etc/passwd', content: 'x' }).decision).toBe('BLOCK');
+  });
   it('allows run_tests', () => {
     const g = new Guardrail(config);
     expect(g.checkAction({ type: 'run_tests' }).decision).toBe('ALLOW');

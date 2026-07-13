@@ -27,7 +27,7 @@ export class Guardrail {
     for (const pattern of SYSTEM_DIR_PATTERNS) {
       if (pattern.test(path)) return { decision: 'BLOCK', reason: `Path ${path} is in system directory`, matchedPattern: pattern.source };
     }
-    if (!path.startsWith(this.workDir) && !path.startsWith('.') && !path.startsWith('/workspace')) {
+    if (!path.startsWith(this.workDir) && !path.startsWith('./') && !path.startsWith('/workspace')) {
       return { decision: 'BLOCK', reason: `Path ${path} is outside workspace` };
     }
     return { decision: 'ALLOW', reason: 'path within workspace' };
