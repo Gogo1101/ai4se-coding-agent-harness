@@ -1,0 +1,203 @@
+﻿=== Commits ===
+8abeb76 feat: event bus for internal module communication
+
+=== Stat Summary ===
+ docs/superpowers/reports/task-3-report.md | 121 ++++++++++++++++++++++++++++++
+ src/event-bus/event-bus.ts                |  22 ++++++
+ tests/event-bus.test.ts                   |  32 ++++++++
+ 3 files changed, 175 insertions(+)
+
+=== Full Diff ===
+diff --git a/docs/superpowers/reports/task-3-report.md b/docs/superpowers/reports/task-3-report.md
+new file mode 100644
+index 0000000..42c8e54
+--- /dev/null
++++ b/docs/superpowers/reports/task-3-report.md
+@@ -0,0 +1,121 @@
++# Task 3: Event Bus 鈥?Report
++
++## What I Implemented
++
++A typed `EventBus` class that wraps Node.js `EventEmitter` with type-safe
++`emit()`, `on()`, `off()`, and `once()` methods, constrained to the
++`EventTypes` interface defined in `src/types.ts`.
++
++**Files created:**
++- `src/event-bus/event-bus.ts` 鈥?`EventBus` class
++- `tests/event-bus.test.ts` 鈥?3 tests (emit/receive, multiple listeners, off)
++
++## TDD Evidence
++
++### RED (failing test)
++
++Wrote `tests/event-bus.test.ts` first and ran it before any implementation
++existed. Failed as expected because the module could not be resolved:
++
++```
++FAIL  tests/event-bus.test.ts [ tests/event-bus.test.ts ]
++Error: Failed to load url ../src/event-bus/event-bus.js (resolved id:
++../src/event-bus/event-bus.js) in D:/Codes/harness_project/tests/event-bus.test.ts.
++Does the file exist?
++
++Test Files  1 failed (1)
++     Tests  no tests
++```
++
++### GREEN (passing test)
++
++After writing the implementation, all 3 tests pass:
++
++```
++ 鉁?tests/event-bus.test.ts (3 tests) 6ms
++
++ Test Files  1 passed (1)
++      Tests  3 passed (3)
++```
++
++Full suite also green (6 tests across 2 files) and `tsc --noEmit` clean.
++
++## Files Changed
++
++| File | Change |
++|------|--------|
++| `src/event-bus/event-bus.ts` | Created 鈥?`EventBus` class |
++| `tests/event-bus.test.ts` | Created 鈥?3 tests |
++
++## Self-Review Findings
++
++### Deviation from plan (documented)
++
++The plan's implementation as written:
++
++```typescript
++emit<K extends keyof EventTypes>(event: K, payload: EventTypes[K]): boolean {
++  return super.emit(event, payload);
++}
++```
++
++does **not** make the plan's own test suite pass. The third test
++(`off removes a listener`) uses the `'error'` event: it registers a
++listener, removes it via `off()`, then emits. Node.js `EventEmitter`
++treats `'error'` specially 鈥?emitting it with **zero listeners throws**
++the payload as an unhandled error, crashing the test:
++
++```
++Error: Unhandled error. ({ taskId: 't1', error: 'oops' })
++code: 'ERR_UNHANDLED_ERROR'
++```
++
++With the plan's exact code, 1 of 3 tests fails (2 pass, 1 fails).
++
++### Fix applied
++
++Added a minimal guard in `emit()` so an `'error'` event with no listeners
++returns `false` instead of throwing:
++
++```typescript
++emit<K extends keyof EventTypes>(event: K, payload: EventTypes[K]): boolean {
++  if (event === 'error' && this.listenerCount('error') === 0) {
++    return false;
++  }
++  return super.emit(event, payload);
++}
++```
++
++Rationale:
++- The test's intent is to verify `off()` removes a listener (handler not
++  called). The guard preserves that intent.
++- For an internal event bus driving a long-running agent harness,
++  crashing the process on an unhandled `'error'` emission is undesirable.
++  Silently no-oping (returning `false`, the EventEmitter convention for
++  "no listeners") is safer and matches the `EventEmitter.emit` return
++  contract.
++- When an `'error'` listener IS registered, behavior is unchanged 鈥?the
++  payload is delivered normally.
++
++### Type safety
++
++The generic constraints (`K extends keyof EventTypes`) ensure callers
++cannot emit or subscribe to unknown events, and payloads are checked
++against `EventTypes[K]` at compile time. `tsc --noEmit` passes.
++
++## Issues or Concerns
++
++1. **Plan's implementation is buggy as written.** The exact code in
++   PLAN.md for `src/event-bus/event-bus.ts` produces a failing test due
++   to Node.js `EventEmitter`'s special `'error'` event handling. I
++   deviated minimally (3-line guard) to make the test pass and documented
++   it here. The plan author may want to update PLAN.md.
++
++2. **Swallowing unhandled `'error'` events is a design choice.** The
++   guard means an `'error'` event with no subscribers is silently dropped.
++   If downstream code (e.g. the agent loop in Task 17) relies on
++   unhandled `'error'` emissions throwing, this could mask bugs. A
++   stricter alternative would be to log unhandled errors rather than
++   silently dropping them. For now, returning `false` (the standard
++   EventEmitter signal for "no listeners") is the least-surprising
++   behavior and matches the test's expectations.
+diff --git a/src/event-bus/event-bus.ts b/src/event-bus/event-bus.ts
+new file mode 100644
+index 0000000..d9fe39f
+--- /dev/null
++++ b/src/event-bus/event-bus.ts
+@@ -0,0 +1,22 @@
++import { EventEmitter } from 'events';
++import type { EventTypes } from '../types.js';
++
++type EventHandler<K extends keyof EventTypes> = (payload: EventTypes[K]) => void;
++
++export class EventBus extends EventEmitter {
++  emit<K extends keyof EventTypes>(event: K, payload: EventTypes[K]): boolean {
++    if (event === 'error' && this.listenerCount('error') === 0) {
++      return false;
++    }
++    return super.emit(event, payload);
++  }
++  on<K extends keyof EventTypes>(event: K, handler: EventHandler<K>): this {
++    return super.on(event, handler);
++  }
++  off<K extends keyof EventTypes>(event: K, handler: EventHandler<K>): this {
++    return super.off(event, handler);
++  }
++  once<K extends keyof EventTypes>(event: K, handler: EventHandler<K>): this {
++    return super.once(event, handler);
++  }
++}
+diff --git a/tests/event-bus.test.ts b/tests/event-bus.test.ts
+new file mode 100644
+index 0000000..ee7f37b
+--- /dev/null
++++ b/tests/event-bus.test.ts
+@@ -0,0 +1,32 @@
++import { describe, it, expect, vi } from 'vitest';
++import { EventBus } from '../src/event-bus/event-bus.js';
++
++describe('EventBus', () => {
++  it('emits and receives events', () => {
++    const bus = new EventBus();
++    const handler = vi.fn();
++    bus.on('task:started', handler);
++    bus.emit('task:started', { taskId: 't1', description: 'test task' });
++    expect(handler).toHaveBeenCalledWith({ taskId: 't1', description: 'test task' });
++  });
++
++  it('supports multiple listeners', () => {
++    const bus = new EventBus();
++    const h1 = vi.fn();
++    const h2 = vi.fn();
++    bus.on('round:completed', h1);
++    bus.on('round:completed', h2);
++    bus.emit('round:completed', { taskId: 't1', roundNum: 1, feedback: null });
++    expect(h1).toHaveBeenCalledOnce();
++    expect(h2).toHaveBeenCalledOnce();
++  });
++
++  it('off removes a listener', () => {
++    const bus = new EventBus();
++    const handler = vi.fn();
++    bus.on('error', handler);
++    bus.off('error', handler);
++    bus.emit('error', { taskId: 't1', error: 'oops' });
++    expect(handler).not.toHaveBeenCalled();
++  });
++});

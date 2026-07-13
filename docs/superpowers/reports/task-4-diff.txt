@@ -1,0 +1,91 @@
+﻿=== Commits ===
+5bffbfb feat: LLM adapter interface and mock LLM for testing
+
+=== Stat Summary ===
+ src/llm/llm-adapter.ts |  5 +++++
+ src/llm/mock-llm.ts    | 22 ++++++++++++++++++++++
+ tests/mock-llm.test.ts | 36 ++++++++++++++++++++++++++++++++++++
+ 3 files changed, 63 insertions(+)
+
+=== Full Diff ===
+diff --git a/src/llm/llm-adapter.ts b/src/llm/llm-adapter.ts
+new file mode 100644
+index 0000000..2747565
+--- /dev/null
++++ b/src/llm/llm-adapter.ts
+@@ -0,0 +1,5 @@
++import type { LLMContext, LLMResponse } from '../types.js';
++
++export interface LLMAdapter {
++  generate(context: LLMContext): Promise<LLMResponse>;
++}
+diff --git a/src/llm/mock-llm.ts b/src/llm/mock-llm.ts
+new file mode 100644
+index 0000000..520d69a
+--- /dev/null
++++ b/src/llm/mock-llm.ts
+@@ -0,0 +1,22 @@
++import type { LLMAdapter } from './llm-adapter.js';
++import type { LLMContext, LLMResponse, Action } from '../types.js';
++
++export class MockLLM implements LLMAdapter {
++  private script: Action[];
++  private index = 0;
++  private _callCount = 0;
++  private _lastContext: LLMContext | null = null;
++
++  constructor(script: Action[]) { this.script = script; }
++  get callCount(): number { return this._callCount; }
++  get lastContext(): LLMContext | null { return this._lastContext; }
++
++  async generate(context: LLMContext): Promise<LLMResponse> {
++    if (this.index >= this.script.length) throw new Error('Mock LLM script exhausted');
++    const action = this.script[this.index];
++    this.index++;
++    this._callCount++;
++    this._lastContext = context;
++    return { content: JSON.stringify(action), action };
++  }
++}
+diff --git a/tests/mock-llm.test.ts b/tests/mock-llm.test.ts
+new file mode 100644
+index 0000000..69165f7
+--- /dev/null
++++ b/tests/mock-llm.test.ts
+@@ -0,0 +1,36 @@
++import { describe, it, expect } from 'vitest';
++import { MockLLM } from '../src/llm/mock-llm.js';
++import type { LLMContext } from '../src/types.js';
++
++const baseContext: LLMContext = {
++  systemPrompt: 'You are a Python coding agent.',
++  task: 'Implement a stack',
++  testFiles: { 'test_stack.py': 'def test_push(): pass' },
++  historySummary: '', roundNum: 1, maxRetries: 5,
++};
++
++describe('MockLLM', () => {
++  it('returns scripted responses in order', async () => {
++    const mock = new MockLLM([
++      { type: 'write_file', path: 'stack.py', content: 'class Stack: ...' },
++      { type: 'run_tests' },
++    ]);
++    const r1 = await mock.generate(baseContext);
++    expect(r1.action.type).toBe('write_file');
++    const r2 = await mock.generate(baseContext);
++    expect(r2.action.type).toBe('run_tests');
++  });
++
++  it('throws when script is exhausted', async () => {
++    const mock = new MockLLM([{ type: 'run_tests' }]);
++    await mock.generate(baseContext);
++    await expect(mock.generate(baseContext)).rejects.toThrow('Mock LLM script exhausted');
++  });
++
++  it('records call history', async () => {
++    const mock = new MockLLM([{ type: 'run_tests' }]);
++    await mock.generate(baseContext);
++    expect(mock.callCount).toBe(1);
++    expect(mock.lastContext).toEqual(baseContext);
++  });
++});

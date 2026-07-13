@@ -1,0 +1,115 @@
+﻿=== Commits ===
+ba74c13 feat: guardrail with pattern matching and path checking
+
+=== Stat Summary ===
+ src/guardrail/guardrail.ts | 47 ++++++++++++++++++++++++++++++++++++++++++++++
+ tests/guardrail.test.ts    | 47 ++++++++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 94 insertions(+)
+
+=== Full Diff ===
+diff --git a/src/guardrail/guardrail.ts b/src/guardrail/guardrail.ts
+new file mode 100644
+index 0000000..e03d6db
+--- /dev/null
++++ b/src/guardrail/guardrail.ts
+@@ -0,0 +1,47 @@
++// src/guardrail/guardrail.ts
++import type { Action, GuardrailResult, Config } from '../types.js';
++
++const SYSTEM_DIR_PATTERNS = [/^\/etc\//, /^\/usr\//, /^\/bin\//, /^\/sbin\//, /^\/boot\//, /^C:\\Windows\\/i];
++
++export class Guardrail {
++  private blockedPatterns: RegExp[];
++  private approvalPatterns: RegExp[];
++  private enableHitl: boolean;
++  private workDir: string;
++
++  constructor(config: Config) {
++    this.blockedPatterns = config.guardrail.blockedPatterns.map(p => new RegExp(p));
++    this.approvalPatterns = config.guardrail.approvalPatterns.map(p => new RegExp(p));
++    this.enableHitl = config.guardrail.enableHitl;
++    this.workDir = config.docker.workDir;
++  }
++
++  checkAction(action: Action): GuardrailResult {
++    if (action.type === 'run_tests') return { decision: 'ALLOW', reason: 'run_tests is always safe' };
++    if (action.type === 'write_file' || action.type === 'read_file') return this.checkPath(action.path);
++    if (action.type === 'run_shell') return this.checkCommand(action.command);
++    return { decision: 'ALLOW', reason: 'unknown action type' };
++  }
++
++  private checkPath(path: string): GuardrailResult {
++    for (const pattern of SYSTEM_DIR_PATTERNS) {
++      if (pattern.test(path)) return { decision: 'BLOCK', reason: `Path ${path} is in system directory`, matchedPattern: pattern.source };
++    }
++    if (!path.startsWith(this.workDir) && !path.startsWith('.') && !path.startsWith('/workspace')) {
++      return { decision: 'BLOCK', reason: `Path ${path} is outside workspace` };
++    }
++    return { decision: 'ALLOW', reason: 'path within workspace' };
++  }
++
++  private checkCommand(command: string): GuardrailResult {
++    for (const pattern of this.blockedPatterns) {
++      if (pattern.test(command)) return { decision: 'BLOCK', reason: `Blocked pattern: ${pattern.source}`, matchedPattern: pattern.source };
++    }
++    if (this.enableHitl) {
++      for (const pattern of this.approvalPatterns) {
++        if (pattern.test(command)) return { decision: 'REQUIRE_APPROVAL', reason: `Approval pattern: ${pattern.source}`, matchedPattern: pattern.source };
++      }
++    }
++    return { decision: 'ALLOW', reason: 'command is safe' };
++  }
++}
+diff --git a/tests/guardrail.test.ts b/tests/guardrail.test.ts
+new file mode 100644
+index 0000000..9cb2011
+--- /dev/null
++++ b/tests/guardrail.test.ts
+@@ -0,0 +1,47 @@
++// tests/guardrail.test.ts
++import { describe, it, expect } from 'vitest';
++import { Guardrail } from '../src/guardrail/guardrail.js';
++import type { Config } from '../src/types.js';
++
++const config: Config = {
++  llm: { model: 'test', temperature: 0, maxTokens: 100, apiBase: '' },
++  agent: { maxRetries: 5, timeoutSeconds: 30, repetitionThreshold: 3, maxHistoryTokens: 2000 },
++  guardrail: {
++    enableHitl: true, hitlTimeoutSeconds: 30,
++    blockedPatterns: ['rm\\s+-rf\\s+/', 'git\\s+push\\s+(-f|--force)'],
++    approvalPatterns: ['sudo\\s+', 'chmod\\s+-R'],
++  },
++  docker: { image: 'test', workDir: '/workspace', memoryLimit: '256m' },
++  debug: false,
++};
++
++describe('Guardrail', () => {
++  it('allows safe commands', () => {
++    const g = new Guardrail(config);
++    expect(g.checkAction({ type: 'run_shell', command: 'ls -la' }).decision).toBe('ALLOW');
++  });
++  it('blocks rm -rf /', () => {
++    const g = new Guardrail(config);
++    expect(g.checkAction({ type: 'run_shell', command: 'rm -rf /' }).decision).toBe('BLOCK');
++  });
++  it('blocks git push --force', () => {
++    const g = new Guardrail(config);
++    expect(g.checkAction({ type: 'run_shell', command: 'git push --force origin main' }).decision).toBe('BLOCK');
++  });
++  it('requires approval for sudo', () => {
++    const g = new Guardrail(config);
++    expect(g.checkAction({ type: 'run_shell', command: 'sudo apt update' }).decision).toBe('REQUIRE_APPROVAL');
++  });
++  it('allows write_file to workspace', () => {
++    const g = new Guardrail(config);
++    expect(g.checkAction({ type: 'write_file', path: '/workspace/stack.py', content: 'x' }).decision).toBe('ALLOW');
++  });
++  it('blocks write_file to system directory', () => {
++    const g = new Guardrail(config);
++    expect(g.checkAction({ type: 'write_file', path: '/etc/passwd', content: 'x' }).decision).toBe('BLOCK');
++  });
++  it('allows run_tests', () => {
++    const g = new Guardrail(config);
++    expect(g.checkAction({ type: 'run_tests' }).decision).toBe('ALLOW');
++  });
++});
