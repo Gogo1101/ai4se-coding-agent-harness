@@ -1,0 +1,28 @@
+stages:
+  - test
+  - build
+
+unit-test:
+  stage: test
+  image: node:20-alpine
+  before_script:
+    - npm ci
+  script:
+    - npx tsc --noEmit
+    - npx vitest run
+  coverage: '/Lines\s*:\s*(\d+\.\d+)%/'
+  artifacts:
+    reports:
+      coverage_report:
+        coverage_format: text
+        path: coverage/coverage-summary.json
+
+docker-build:
+  stage: build
+  image: docker:24
+  services:
+    - docker:24-dind
+  script:
+    - docker build -t harness-python:latest .
+  only:
+    - main
