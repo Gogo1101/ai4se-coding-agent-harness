@@ -1,0 +1,25 @@
+llm:
+  model: "deepseek-v4-pro"
+  temperature: 0.3
+  max_tokens: 4096
+  api_base: ""
+agent:
+  max_retries: 5
+  timeout_seconds: 30
+  repetition_threshold: 3
+  max_history_tokens: 2000
+guardrail:
+  enable_hitl: true
+  hitl_timeout_seconds: 30
+  blocked_patterns:
+    - "rm\\s+-rf\\s+/"
+    - "git\\s+push\\s+(-f|--force)"
+  approval_patterns:
+    - "sudo\\s+"
+    - "chmod\\s+-R"
+    - "curl.*\\|.*sh"
+docker:
+  image: "harness-python:latest"
+  work_dir: "/workspace"
+  memory_limit: "256m"
+debug: false
