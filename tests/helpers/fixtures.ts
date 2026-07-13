@@ -32,7 +32,7 @@ export const expectedFeedbackSignal: FeedbackSignal = {
     traceback: 'test_stack.py:15: test_peek',
   }],
   failureType: 'ASSERTION_ERROR',
-  rawReport: '',
+  rawReport: JSON.stringify(samplePytestReport),
 };
 
 export const compileErrorReport = {
