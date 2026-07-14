@@ -134,15 +134,13 @@ CRITICAL WORKFLOW (one action per round):
 
 ## 8. 如果重做我会改变什么
 
-1. **冷启动验证要真正做**：这次冷启动验证是事后模拟的。如果真正用一个不同类型的 agent 在实现前试跑 1-2 个 task，至少能提前发现"测试文件导入约定缺失"和"pytest 发现规则不匹配"这两个问题，节省 2-3 小时的调试时间。
+1. **集成任务要拆分**：Task 17（Agent Loop）和 Task 21（Dockerfile + Entry Point）应该拆成更小的 task。Task 17 应拆为"agent loop 主循环" + "HITL 集成" + "error 事件"三个 task；Task 21 应拆为"入口文件" + "Dockerfile" + "API 路由"三个 task。
 
-2. **集成任务要拆分**：Task 17（Agent Loop）和 Task 21（Dockerfile + Entry Point）应该拆成更小的 task。Task 17 应拆为"agent loop 主循环" + "HITL 集成" + "error 事件"三个 task；Task 21 应拆为"入口文件" + "Dockerfile" + "API 路由"三个 task。
+2. **PLAN 中的代码要先用 tsc 验证**：PLAN.md 中包含大量 TypeScript 代码片段，但从未通过 `tsc --noEmit` 验证。dockerode 类型不匹配、`(e as Error)` 语法错误、maskKey 与测试不一致——这些问题在 plan 阶段就能发现。
 
-3. **PLAN 中的代码要先用 tsc 验证**：PLAN.md 中包含大量 TypeScript 代码片段，但从未通过 `tsc --noEmit` 验证。dockerode 类型不匹配、`(e as Error)` 语法错误、maskKey 与测试不一致——这些问题在 plan 阶段就能发现。
+3. **使用 PR 工作流**：这次全部直推 master，没有 PR。如果重做，至少集成任务（Task 17、21）应该走 PR + review 流程，让 reviewer 在合并前检查。
 
-4. **使用 PR 工作流**：这次全部直推 master，没有 PR。如果重做，至少集成任务（Task 17、21）应该走 PR + review 流程，让 reviewer 在合并前检查。
-
-5. **前端应该用框架**：纯 HTML/CSS/JS 的前端在功能扩展时维护成本高（每次改 app.js 都要手动复制到 dist/）。如果重做，至少用 Vite + React，获得热重载和自动构建。
+4. **前端应该用框架**：纯 HTML/CSS/JS 的前端在功能扩展时维护成本高（每次改 app.js 都要手动复制到 dist/）。如果重做，至少用 Vite + React，获得热重载和自动构建。
 
 ---
 
