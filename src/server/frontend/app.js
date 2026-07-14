@@ -142,18 +142,26 @@ async function loadKeyStatus() {
 document.getElementById('btn-set-key').addEventListener('click', async () => {
   const key = document.getElementById('api-key-input').value.trim();
   if (!key) { document.getElementById('key-status').textContent = 'Please enter a key'; return; }
-  const response = await fetch('/api/credentials', {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ apiKey: key }),
-  });
-  const data = await response.json();
-  document.getElementById('key-status').textContent = data.status;
-  document.getElementById('api-key-input').value = '';
-  loadKeyStatus();
+  try {
+    const response = await fetch('/api/credentials', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ apiKey: key }),
+    });
+    const data = await response.json();
+    document.getElementById('key-status').textContent = data.status;
+    document.getElementById('api-key-input').value = '';
+    loadKeyStatus();
+  } catch (e) {
+    document.getElementById('key-status').textContent = `Error: ${(e as Error).message}`;
+  }
 });
 
 document.getElementById('btn-clear-key').addEventListener('click', async () => {
-  const response = await fetch('/api/credentials', { method: 'DELETE' });
-  const data = await response.json();
-  document.getElementById('key-status').textContent = data.status;
+  try {
+    const response = await fetch('/api/credentials', { method: 'DELETE' });
+    const data = await response.json();
+    document.getElementById('key-status').textContent = data.status;
+  } catch (e) {
+    document.getElementById('key-status').textContent = `Error: ${(e as Error).message}`;
+  }
 });

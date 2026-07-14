@@ -82,10 +82,12 @@ export class WebUIServer {
           res.writeHead(200, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ status: 'Key saved successfully' }));
         } catch (e) {
-          res.writeHead(500); res.end(`Failed: ${(e as Error).message}`);
+          res.writeHead(500, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ status: `Failed: ${(e as Error).message}` }));
         }
       } else {
-        res.writeHead(404); res.end('Not found');
+        res.writeHead(404, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ status: 'Not found' }));
       }
       return;
     }
@@ -97,7 +99,8 @@ export class WebUIServer {
           res.writeHead(200, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ status: 'Key cleared' }));
         } catch (e) {
-          res.writeHead(500); res.end(`Failed: ${(e as Error).message}`);
+          res.writeHead(500, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ status: `Failed: ${(e as Error).message}` }));
         }
       } else {
         res.writeHead(404); res.end('Not found');
