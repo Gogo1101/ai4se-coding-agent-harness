@@ -60,12 +60,16 @@ export class CredentialManager {
   }
 
   async getStatus(): Promise<string> {
+    const parts: string[] = [];
     if (process.env.OPENAI_API_KEY) {
-      return `API Key: ${maskKey(process.env.OPENAI_API_KEY)} (source: env)`;
+      parts.push(`env: ${maskKey(process.env.OPENAI_API_KEY)}`);
     }
     const key = await this.getKey();
-    if (key) return `API Key: ${maskKey(key)} (source: stored)`;
-    return 'API Key: not configured';
+    if (key) {
+      parts.push(`stored: ${maskKey(key)}`);
+    }
+    if (parts.length === 0) return 'API Key: not configured';
+    return `API Key: ${parts.join(' | ')} (runtime uses stored if available, else env)`;
   }
 }
 
