@@ -114,8 +114,15 @@ export class AgentLoop {
             return 'failure';
           }
         } catch (err) {
-          bus.emit('error', { taskId: task.id, error: (err as Error).message });
-          currentFailure = { total: 0, passed: 0, failed: 0, failures: [], failureType: 'RUNTIME_ERROR', rawReport: `Error: ${(err as Error).message}` };
+          const errMsg = (err as Error).message;
+          bus.emit('error', { taskId: task.id, error: errMsg });
+          if (errMsg.includes('401') || errMsg.includes('Invalid token') || errMsg.includes('Authentication')) {
+            bus.emit('agent:stopped', { taskId: task.id, reason: `Authentication failed: ${errMsg}` });
+            memory.updateTaskStatus(task.id, 'failure');
+            bus.emit('task:completed', { taskId: task.id, status: 'failure' });
+            return 'failure';
+          }
+          currentFailure = { total: 0, passed: 0, failed: 0, failures: [], failureType: 'RUNTIME_ERROR', rawReport: `Error: ${errMsg}` };
           const r: Round = { id: 0, taskId: task.id, roundNum, codeFiles: {}, action: lastAction, feedback: currentFailure, failureType: 'RUNTIME_ERROR', createdAt: new Date().toISOString() };
           rounds.push(r); memory.saveRound(r); bus.emit('round:completed', { taskId: task.id, roundNum, feedback: currentFailure });
           continue;
