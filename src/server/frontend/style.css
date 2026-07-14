@@ -24,8 +24,23 @@ textarea, input[type="text"] { width: 100%; background: #16213e; color: #e0e0e0;
 .hitl-panel { margin-top: 16px; padding: 16px; background: #2a1a1a; border: 1px solid #8b0000; border-radius: 4px; }
 .hidden { display: none; }
 .task-list { display: flex; flex-direction: column; gap: 8px; }
-.task-card { padding: 12px; background: #16213e; border-radius: 4px; cursor: pointer; }
+.task-card { padding: 12px; background: #16213e; border-radius: 4px; }
 .task-card .status { float: right; padding: 2px 8px; border-radius: 4px; font-size: 0.8rem; }
+.task-card-header { cursor: pointer; display: flex; align-items: center; gap: 8px; }
+.task-card-header strong { flex: 1; }
+.task-card-header small { color: #888; font-size: 0.8rem; }
+.expand-icon { color: #7ec8e3; font-size: 0.8rem; }
+.task-detail { margin-top: 12px; padding-top: 12px; border-top: 1px solid #333; }
+.detail-section { margin-bottom: 16px; }
+.detail-section h4 { color: #7ec8e3; margin-bottom: 8px; font-size: 0.9rem; }
+.detail-file { margin-bottom: 8px; }
+.detail-file pre { background: #0d1117; border: 1px solid #333; border-radius: 4px; padding: 8px; overflow-x: auto; font-size: 0.8rem; }
+.round-item { margin-bottom: 12px; padding: 8px; background: #0d1117; border-radius: 4px; }
+.round-header { color: #7ec8e3; font-weight: bold; margin-bottom: 4px; }
+.round-action { color: #aaa; font-size: 0.85rem; margin-bottom: 4px; }
+.round-code { background: #16213e; padding: 8px; border-radius: 4px; overflow-x: auto; font-size: 0.8rem; }
+.round-feedback { margin-top: 4px; }
+.round-failures { margin-top: 4px; }
 .status-success { background: #1a4a1a; }
 .status-failure { background: #4a1a1a; }
 .status-running { background: #1a1a4a; }

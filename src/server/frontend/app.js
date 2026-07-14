@@ -128,9 +128,69 @@ async function loadTasks() {
   tasks.forEach(task => {
     const card = document.createElement('div');
     card.className = 'task-card';
-    card.innerHTML = `<span class="status status-${task.status}">${task.status}</span><strong>${task.description}</strong><br><small>${task.createdAt}</small>`;
+    card.innerHTML = `<div class="task-card-header"><span class="status status-${task.status}">${task.status}</span><strong>${task.description}</strong><small>${task.createdAt}</small><span class="expand-icon">▼</span></div><div class="task-detail hidden"></div>`;
+    card.querySelector('.task-card-header').addEventListener('click', async () => {
+      const detail = card.querySelector('.task-detail');
+      const icon = card.querySelector('.expand-icon');
+      if (detail.classList.contains('hidden')) {
+        detail.classList.remove('hidden');
+        icon.textContent = '▲';
+        if (!detail.dataset.loaded) {
+          const res = await fetch(`/api/tasks/${task.id}`);
+          const data = await res.json();
+          detail.dataset.loaded = '1';
+          detail.innerHTML = renderTaskDetail(data);
+        }
+      } else {
+        detail.classList.add('hidden');
+        icon.textContent = '▼';
+      }
+    });
     list.appendChild(card);
   });
+}
+
+function renderTaskDetail(data) {
+  const { task, rounds } = data;
+  let html = '<div class="detail-section"><h4>Test Files</h4>';
+  for (const [name, content] of Object.entries(task.testFiles)) {
+    html += `<div class="detail-file"><strong>${name}</strong><pre>${escapeHtml(content)}</pre></div>`;
+  }
+  html += '</div>';
+  if (rounds && rounds.length > 0) {
+    html += '<div class="detail-section"><h4>Rounds</h4>';
+    rounds.forEach(r => {
+      const action = typeof r.action === 'string' ? JSON.parse(r.action) : r.action;
+      const feedback = r.feedback ? (typeof r.feedback === 'string' ? JSON.parse(r.feedback) : r.feedback) : null;
+      html += `<div class="round-item"><div class="round-header">Round ${r.roundNum} — ${action.type}</div>`;
+      if (action.type === 'write_file') {
+        html += `<div class="round-action">File: ${action.path}</div><pre class="round-code">${escapeHtml(action.content || '')}</pre>`;
+      }
+      if (feedback) {
+        const passed = feedback.passed || 0;
+        const failed = feedback.failed || 0;
+        const total = feedback.total || 0;
+        html += `<div class="round-feedback"><span class="${failed === 0 ? 'test-pass' : 'test-fail'}">${passed}/${total} passed</span>`;
+        if (feedback.failures && feedback.failures.length > 0) {
+          html += '<div class="round-failures">';
+          feedback.failures.forEach(f => {
+            html += `<div class="test-failure-item"><strong>${f.testName}</strong><br>${escapeHtml(f.traceback || f.assertion || '')}</div>`;
+          });
+          html += '</div>';
+        }
+        html += '</div>';
+      }
+      html += '</div>';
+    });
+    html += '</div>';
+  }
+  return html;
+}
+
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
 }
 
 async function loadKeyStatus() {

@@ -151,6 +151,19 @@ export class WebUIServer {
       return;
     }
 
+    if (url.startsWith('/api/tasks/') && method === 'GET') {
+      const taskId = url.split('/').pop()!;
+      const result = this.deps.memory.getTask(taskId);
+      if (result) {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify(result));
+      } else {
+        res.writeHead(404, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Task not found' }));
+      }
+      return;
+    }
+
     if (url.startsWith('/api/tasks')) { const tasks = this.deps.memory.listTasks(0, 20); res.writeHead(200, { 'Content-Type': 'application/json' }); res.end(JSON.stringify(tasks)); return; }
     try {
       const filePath = url === '/' ? '/index.html' : url;
