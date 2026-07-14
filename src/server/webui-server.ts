@@ -68,6 +68,43 @@ export class WebUIServer {
       return;
     }
 
+    if (url === '/api/credentials' && method === 'POST') {
+      if (this.deps.creds) {
+        const body = await new Promise<string>((resolve) => {
+          let data = '';
+          req.on('data', (chunk: Buffer) => { data += chunk.toString(); });
+          req.on('end', () => resolve(data));
+        });
+        try {
+          const parsed = JSON.parse(body) as { apiKey: string };
+          if (!parsed.apiKey) { res.writeHead(400); res.end('Missing apiKey'); return; }
+          await this.deps.creds.setKey(parsed.apiKey);
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ status: 'Key saved successfully' }));
+        } catch (e) {
+          res.writeHead(500); res.end(`Failed: ${(e as Error).message}`);
+        }
+      } else {
+        res.writeHead(404); res.end('Not found');
+      }
+      return;
+    }
+
+    if (url === '/api/credentials' && method === 'DELETE') {
+      if (this.deps.creds) {
+        try {
+          await this.deps.creds.clearKey();
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ status: 'Key cleared' }));
+        } catch (e) {
+          res.writeHead(500); res.end(`Failed: ${(e as Error).message}`);
+        }
+      } else {
+        res.writeHead(404); res.end('Not found');
+      }
+      return;
+    }
+
     if (url === '/api/tasks' && method === 'POST') {
       const agentLoop = this.deps.agentLoop;
       if (agentLoop) {
