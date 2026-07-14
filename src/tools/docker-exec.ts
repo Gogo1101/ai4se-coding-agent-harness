@@ -52,9 +52,9 @@ export class DockerExec {
 
   async exec(containerId: string, command: string): Promise<ExecResult> {
     const container = this.docker.getContainer(containerId);
-    const exec = await container.exec({ Cmd: ['sh', '-c', command], AttachStdout: true, AttachStderr: true, Tty: true });
+    const exec = await container.exec({ Cmd: ['sh', '-c', command], AttachStdout: true, AttachStderr: true });
     return new Promise((resolve, reject) => {
-      exec.start({}, (err: Error | null, stream?: Readable) => {
+      exec.start({ Tty: true }, (err: Error | null, stream?: Readable) => {
         if (err) { reject(err); return; }
         if (!stream) { reject(new Error('exec stream unavailable')); return; }
         let stdout = '';
