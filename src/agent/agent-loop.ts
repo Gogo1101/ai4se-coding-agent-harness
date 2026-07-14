@@ -24,9 +24,9 @@ export class AgentLoop {
     bus.emit('task:started', { taskId: task.id, description: task.description });
     const containerId = await toolRouter.dockerExec.createContainer(task.id);
     for (const [filename, content] of Object.entries(task.testFiles)) {
-      await toolRouter.dockerExec.writeFile(containerId, `${config.docker.workDir}/${filename}`, content);
+      const importHeader = 'from solution import *\n';
+      await toolRouter.dockerExec.writeFile(containerId, `${config.docker.workDir}/${filename}`, importHeader + content);
     }
-    await toolRouter.dockerExec.writeFile(containerId, `${config.docker.workDir}/conftest.py`, 'try:\n    from solution import *\nexcept ImportError:\n    pass\n');
     const rounds: Round[] = [];
     let currentFailure: FeedbackSignal | undefined;
     try {
