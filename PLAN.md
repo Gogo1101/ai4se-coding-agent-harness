@@ -35,58 +35,58 @@ harness_project/
 ├── SPEC.md
 ├── PLAN.md
 ├── src/
-�?  ├── index.ts                     # Entry point
-�?  ├── types.ts                     # All shared TypeScript types
-�?  ├── config/config-loader.ts      # Loads & validates YAML config
-�?  ├── credentials/credential-manager.ts
-�?  ├── event-bus/event-bus.ts       # Internal EventEmitter wrapper
-�?  ├── llm/
-�?  �?  ├── llm-adapter.ts          # LLMAdapter interface
-�?  �?  ├── mock-llm.ts             # Scripted mock for testing
-�?  �?  └── openai-adapter.ts       # Real OpenAI-compatible implementation
-�?  ├── guardrail/
-�?  �?  ├── guardrail.ts            # checkAction() pure function
-�?  �?  └── hitl-state-machine.ts   # HITL approval state machine
-�?  ├── feedback/
-�?  �?  ├── feedback-parser.ts      # parseTestResult() pure function
-�?  �?  ├── failure-classifier.ts   # classifyFailure() pure function
-�?  �?  ├── history-compressor.ts   # compressHistory() pure function
-�?  �?  ├── repetition-detector.ts  # detectRepetition() pure function
-�?  �?  └── context-assembler.ts   # assembleContext() pure function
-�?  ├── tools/
-�?  �?  ├── tool-router.ts          # dispatchAction() dispatcher
-�?  �?  └── docker-exec.ts          # Docker container management
-�?  ├── memory/memory-store.ts      # SQLite CRUD for tasks/rounds
-�?  ├── agent/
-�?  �?  ├── action-parser.ts        # parseAction() JSON parser
-�?  �?  └── agent-loop.ts           # Main agent loop
-�?  └── server/
-�?      ├── webui-server.ts         # HTTP + WebSocket server
-�?      └── frontend/
-�?          ├── index.html
-�?          ├── app.js
-�?          └── style.css
+│  ├── index.ts                     # Entry point
+│  ├── types.ts                     # All shared TypeScript types
+│  ├── config/config-loader.ts      # Loads & validates YAML config
+│  ├── credentials/credential-manager.ts
+│  ├── event-bus/event-bus.ts       # Internal EventEmitter wrapper
+│  ├── llm/
+│  │  ├── llm-adapter.ts          # LLMAdapter interface
+│  │  ├── mock-llm.ts             # Scripted mock for testing
+│  │  └── openai-adapter.ts       # Real OpenAI-compatible implementation
+│  ├── guardrail/
+│  │  ├── guardrail.ts            # checkAction() pure function
+│  │  └── hitl-state-machine.ts   # HITL approval state machine
+│  ├── feedback/
+│  │  ├── feedback-parser.ts      # parseTestResult() pure function
+│  │  ├── failure-classifier.ts   # classifyFailure() pure function
+│  │  ├── history-compressor.ts   # compressHistory() pure function
+│  │  ├── repetition-detector.ts  # detectRepetition() pure function
+│  │  └── context-assembler.ts   # assembleContext() pure function
+│  ├── tools/
+│  │  ├── tool-router.ts          # dispatchAction() dispatcher
+│  │  └── docker-exec.ts          # Docker container management
+│  ├── memory/memory-store.ts      # SQLite CRUD for tasks/rounds
+│  ├── agent/
+│  │  ├── action-parser.ts        # parseAction() JSON parser
+│  │  └── agent-loop.ts           # Main agent loop
+│  └── server/
+│      ├── webui-server.ts         # HTTP + WebSocket server
+│      └── frontend/
+│          ├── index.html
+│          ├── app.js
+│          └── style.css
 ├── tests/
-�?  ├── helpers/fixtures.ts          # Shared test fixtures
-�?  ├── config-loader.test.ts
-�?  ├── event-bus.test.ts
-�?  ├── mock-llm.test.ts
-�?  ├── guardrail.test.ts
-�?  ├── hitl-state-machine.test.ts
-�?  ├── feedback-parser.test.ts
-�?  ├── failure-classifier.test.ts
-�?  ├── history-compressor.test.ts
-�?  ├── repetition-detector.test.ts
-�?  ├── context-assembler.test.ts
-�?  ├── action-parser.test.ts
-�?  ├── memory-store.test.ts
-�?  ├── docker-exec.test.ts
-�?  ├── tool-router.test.ts
-�?  ├── agent-loop.test.ts
-�?  ├── credential-manager.test.ts
-�?  ├── openai-adapter.test.ts
-�?  ├── webui-server.test.ts
-�?  └── mechanism-demo.test.ts      # D1, D2, D3 demos
+│  ├── helpers/fixtures.ts          # Shared test fixtures
+│  ├── config-loader.test.ts
+│  ├── event-bus.test.ts
+│  ├── mock-llm.test.ts
+│  ├── guardrail.test.ts
+│  ├── hitl-state-machine.test.ts
+│  ├── feedback-parser.test.ts
+│  ├── failure-classifier.test.ts
+│  ├── history-compressor.test.ts
+│  ├── repetition-detector.test.ts
+│  ├── context-assembler.test.ts
+│  ├── action-parser.test.ts
+│  ├── memory-store.test.ts
+│  ├── docker-exec.test.ts
+│  ├── tool-router.test.ts
+│  ├── agent-loop.test.ts
+│  ├── credential-manager.test.ts
+│  ├── openai-adapter.test.ts
+│  ├── webui-server.test.ts
+│  └── mechanism-demo.test.ts      # D1, D2, D3 demos
 └── docs/superpowers/plans/
 ```
 
@@ -94,17 +94,28 @@ harness_project/
 
 ```
 Task 1 (scaffolding + types)
-├── Task 2 (config loader)          ─�?├── Task 3 (event bus)               ├─ Phase 1: parallel
-├── Task 4 (LLM adapter + mock)     ─�?�?├── Task 5 (guardrail)              ─�?├── Task 6 (HITL state machine)      �?├── Task 7 (feedback parser)         ├─ Phase 2: parallel (after Phase 1)
-├── Task 8 (failure classifier)      �?├── Task 9 (history compressor)      �?├── Task 10 (repetition detector)    �?├── Task 11 (context assembler)      �?├── Task 12 (action parser)         ─�?�?├── Task 13 (memory store)          ─�?├── Task 14 (docker exec)            ├─ Phase 3: parallel (after Phase 1)
-├── Task 15 (tool router)           ─�? (depends on Task 14 + Task 7)
-├── Task 16 (credential manager)    ─�?�?├── Task 17 (agent loop)            ─── Phase 4 (depends on Phase 2 + 3)
-├── Task 18 (openai adapter)       ─── Phase 4 (depends on Task 4)
-�?├── Task 19 (webui server)         ─── Phase 5 (depends on Task 17)
-├── Task 20 (frontend spa)         ─── Phase 5 (depends on Task 19)
-�?├── Task 21 (dockerfile)           ─── Phase 6 (depends on all)
-├── Task 22 (mechanism demos)      ─── Phase 6 (depends on Task 17)
-└── Task 23 (ci config)            ─── Phase 6 (depends on Task 22)
+├── Task 2 (config loader)           ─→ Phase 1: parallel
+├── Task 3 (event bus)               ─→ Phase 1: parallel
+├── Task 4 (LLM adapter + mock)      ─→ Phase 1: parallel
+├── Task 5 (guardrail)               ─→ Phase 1: parallel
+├── Task 6 (HITL state machine)      ─→ Phase 1: parallel
+├── Task 7 (feedback parser)         ─→ Phase 2: parallel (after Phase 1)
+├── Task 8 (failure classifier)      ─→ Phase 2: parallel (after Phase 1)
+├── Task 9 (history compressor)      ─→ Phase 2: parallel (after Phase 1)
+├── Task 10 (repetition detector)    ─→ Phase 2: parallel (after Phase 1)
+├── Task 11 (context assembler)      ─→ Phase 2: parallel (after Phase 1)
+├── Task 12 (action parser)          ─→ Phase 2: parallel (after Phase 1)
+├── Task 13 (memory store)           ─→ Phase 3: parallel (after Phase 1)
+├── Task 14 (docker exec)            ─→ Phase 3: parallel (after Phase 1)
+├── Task 15 (tool router)            ─→ Phase 3 (depends on Task 14 + Task 7)
+├── Task 16 (credential manager)     ─→ Phase 3: parallel (after Phase 1)
+├── Task 17 (agent loop)             ─→ Phase 4 (depends on Phase 2 + 3)
+├── Task 18 (openai adapter)         ─→ Phase 4 (depends on Task 4)
+├── Task 19 (webui server)           ─→ Phase 5 (depends on Task 17)
+├── Task 20 (frontend spa)           ─→ Phase 5 (depends on Task 19)
+├── Task 21 (dockerfile)             ─→ Phase 6 (depends on all)
+├── Task 22 (mechanism demos)        ─→ Phase 6 (depends on Task 17)
+└── Task 23 (ci config)              ─→ Phase 6 (depends on Task 22)
 ```
 
 ---
@@ -751,7 +762,6 @@ git commit -m "feat: LLM adapter interface and mock LLM for testing"
 
 ### Task 5: Guardrail
 > Status: COMPLETED | Commit: ba74c13 (fix: fa18178)
-> Commit: a74c13 (fix: a18178)
 
 **Files:**
 - Create: `src/guardrail/guardrail.ts`, `tests/guardrail.test.ts`
@@ -885,7 +895,6 @@ git commit -m "feat: guardrail with pattern matching and path checking"
 
 ### Task 6: HITL State Machine
 > Status: COMPLETED | Commit: b56b6ae
-> Commit: 56b6ae"
 
 **Files:**
 - Create: `src/guardrail/hitl-state-machine.ts`, `tests/hitl-state-machine.test.ts`
