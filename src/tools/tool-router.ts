@@ -16,7 +16,7 @@ export class ToolRouter {
       case 'run_shell':
         return await this.dockerExec.exec(containerId, action.command);
       case 'run_tests': {
-        const result = await this.dockerExec.exec(containerId, 'pytest /workspace/ --json-report --json-report-file /tmp/report.json --tb=short -q > /dev/null 2>&1; cat /tmp/report.json');
+        const result = await this.dockerExec.exec(containerId, 'pytest /workspace/ --override-ini="python_files=test*.py" --json-report --json-report-file /tmp/report.json --tb=short -q > /dev/null 2>&1; cat /tmp/report.json');
         let report: unknown;
         try { report = JSON.parse(result.stdout); } catch { report = { tests: [], summary: { total: 0, passed: 0, failed: 0 } }; }
         return { feedbackSignal: parseTestResult(report) };

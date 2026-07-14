@@ -27,7 +27,10 @@ document.getElementById('btn-start-task').addEventListener('click', async () => 
   document.querySelectorAll('.test-file-entry').forEach(entry => {
     const filename = entry.querySelector('.test-filename').value.trim();
     const content = entry.querySelector('.test-content').value;
-    if (filename) testFiles[filename] = content;
+    if (content.trim()) {
+      const name = filename || `test_auto_${Date.now()}.py`;
+      testFiles[name] = content;
+    }
   });
   const response = await fetch('/api/tasks', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
