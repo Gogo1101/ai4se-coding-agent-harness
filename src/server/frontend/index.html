@@ -37,6 +37,18 @@
       </section>
       <section id="view-running" class="view">
         <h2>Task Running</h2>
+        <div id="result-panel" class="result-panel">
+          <div id="status-line" class="status-line"></div>
+          <div id="code-display" class="code-display hidden">
+            <h3>Generated Code</h3>
+            <pre><code id="code-content"></code></pre>
+          </div>
+          <div id="test-results" class="test-results hidden">
+            <h3>Test Results</h3>
+            <div id="test-summary"></div>
+            <div id="test-failures"></div>
+          </div>
+        </div>
         <div id="event-log" class="event-log"></div>
         <div id="hitl-panel" class="hitl-panel hidden">
           <h3>Approval Required</h3>

@@ -29,3 +29,14 @@ textarea, input[type="text"] { width: 100%; background: #16213e; color: #e0e0e0;
 .status-success { background: #1a4a1a; }
 .status-failure { background: #4a1a1a; }
 .status-running { background: #1a1a4a; }
+.result-panel { margin-bottom: 16px; }
+.status-line { font-size: 1.1rem; font-weight: bold; padding: 8px 0; }
+.code-display { margin: 12px 0; }
+.code-display h3 { color: #7ec8e3; margin-bottom: 8px; }
+.code-display pre { background: #0d1117; border: 1px solid #333; border-radius: 4px; padding: 12px; overflow-x: auto; }
+.code-display code { font-family: 'Consolas', 'Monaco', monospace; font-size: 0.9rem; color: #e0e0e0; white-space: pre; }
+.test-results { margin: 12px 0; }
+.test-results h3 { color: #7ec8e3; margin-bottom: 8px; }
+.test-pass { color: #4caf50; }
+.test-fail { color: #e06c75; }
+.test-failure-item { padding: 8px; margin: 4px 0; background: #2a1a1a; border-left: 3px solid #e06c75; border-radius: 2px; font-family: monospace; font-size: 0.85rem; }

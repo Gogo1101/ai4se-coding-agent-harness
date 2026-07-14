@@ -45,9 +45,20 @@ function connectWebSocket() {
   ws.onmessage = (event) => {
     const { type, payload } = JSON.parse(event.data);
     appendEvent(type, payload);
+    if (type === 'tool:executed' && payload.action && payload.action.type === 'write_file') {
+      showCode(payload.action.path, payload.action.content);
+    }
+    if (type === 'round:completed' && payload.feedback) {
+      showTestResults(payload.feedback);
+    }
+    if (type === 'task:completed') {
+      showStatus(payload.status);
+    }
+    if (type === 'agent:stopped') {
+      showStatus(payload.reason);
+    }
     if (type === 'guardrail:approval_requested') showHitlPanel(payload);
     if (type === 'guardrail:approval_responded') hideHitlPanel();
-    if (type === 'task:completed') appendEvent('task:completed', payload);
   };
 }
 
@@ -55,9 +66,45 @@ function appendEvent(type, payload) {
   const log = document.getElementById('event-log');
   const div = document.createElement('div');
   div.className = `event event-${type.split(':')[0]}`;
-    div.textContent = `[${new Date().toLocaleTimeString()}] ${type}: ${JSON.stringify(payload)}`;
+  div.textContent = `[${new Date().toLocaleTimeString()}] ${type}: ${JSON.stringify(payload)}`;
   log.appendChild(div);
   log.scrollTop = log.scrollHeight;
+}
+
+function showCode(path, content) {
+  const panel = document.getElementById('code-display');
+  const codeEl = document.getElementById('code-content');
+  panel.classList.remove('hidden');
+  codeEl.textContent = content;
+}
+
+function showTestResults(feedback) {
+  const panel = document.getElementById('test-results');
+  const summary = document.getElementById('test-summary');
+  const failures = document.getElementById('test-failures');
+  panel.classList.remove('hidden');
+  const passed = feedback.passed || 0;
+  const failed = feedback.failed || 0;
+  const total = feedback.total || 0;
+  summary.innerHTML = `<span class="${failed === 0 ? 'test-pass' : 'test-fail'}">${passed}/${total} passed</span>`;
+  if (feedback.failures && feedback.failures.length > 0) {
+    failures.innerHTML = feedback.failures.map(f =>
+      `<div class="test-failure-item"><strong>${f.testName}</strong><br>${f.assertion || ''}<br>Expected: ${f.expected || 'N/A'} | Actual: ${f.actual || 'N/A'}<br>${f.traceback || ''}</div>`
+    ).join('');
+  } else {
+    failures.innerHTML = '';
+  }
+}
+
+function showStatus(status) {
+  const el = document.getElementById('status-line');
+  if (status === 'success') {
+    el.innerHTML = '<span class="test-pass">✓ Task completed successfully</span>';
+  } else if (status === 'failure') {
+    el.innerHTML = '<span class="test-fail">✗ Task failed</span>';
+  } else {
+    el.textContent = status;
+  }
 }
 
 function showHitlPanel(payload) {
