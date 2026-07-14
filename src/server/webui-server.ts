@@ -157,7 +157,7 @@ export class WebUIServer {
       const content = await readFile(join(FRONTEND_DIR, filePath));
       const ext = filePath.split('.').pop()?.toLowerCase();
       const ct = ext === 'html' ? 'text/html' : ext === 'js' ? 'text/javascript' : ext === 'css' ? 'text/css' : 'application/octet-stream';
-      res.writeHead(200, { 'Content-Type': ct }); res.end(content);
+      res.writeHead(200, { 'Content-Type': ct, 'Cache-Control': 'no-cache, no-store, must-revalidate' }); res.end(content);
     } catch { res.writeHead(404); res.end('Not found'); }
   }
 
