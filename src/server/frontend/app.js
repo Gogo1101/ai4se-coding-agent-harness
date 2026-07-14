@@ -152,7 +152,7 @@ document.getElementById('btn-set-key').addEventListener('click', async () => {
     document.getElementById('api-key-input').value = '';
     loadKeyStatus();
   } catch (e) {
-    document.getElementById('key-status').textContent = `Error: ${(e as Error).message}`;
+    document.getElementById('key-status').textContent = `Error: ${e.message}`;
   }
 });
 
@@ -162,6 +162,6 @@ document.getElementById('btn-clear-key').addEventListener('click', async () => {
     const data = await response.json();
     document.getElementById('key-status').textContent = data.status;
   } catch (e) {
-    document.getElementById('key-status').textContent = `Error: ${(e as Error).message}`;
+    document.getElementById('key-status').textContent = `Error: ${e.message}`;
   }
 });
