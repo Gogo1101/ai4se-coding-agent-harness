@@ -1,6 +1,6 @@
 # Coding Agent Harness Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Build a "exam coach" coding agent harness that accepts a programming task + pytest tests, drives an LLM to generate code, runs tests in Docker, parses failures, and feeds back structured signals for self-correction until all green or max retries.
 
@@ -35,58 +35,58 @@ harness_project/
 ├── SPEC.md
 ├── PLAN.md
 ├── src/
-│   ├── index.ts                     # Entry point
-│   ├── types.ts                     # All shared TypeScript types
-│   ├── config/config-loader.ts      # Loads & validates YAML config
-│   ├── credentials/credential-manager.ts
-│   ├── event-bus/event-bus.ts       # Internal EventEmitter wrapper
-│   ├── llm/
-│   │   ├── llm-adapter.ts          # LLMAdapter interface
-│   │   ├── mock-llm.ts             # Scripted mock for testing
-│   │   └── openai-adapter.ts       # Real OpenAI-compatible implementation
-│   ├── guardrail/
-│   │   ├── guardrail.ts            # checkAction() pure function
-│   │   └── hitl-state-machine.ts   # HITL approval state machine
-│   ├── feedback/
-│   │   ├── feedback-parser.ts      # parseTestResult() pure function
-│   │   ├── failure-classifier.ts   # classifyFailure() pure function
-│   │   ├── history-compressor.ts   # compressHistory() pure function
-│   │   ├── repetition-detector.ts  # detectRepetition() pure function
-│   │   └── context-assembler.ts   # assembleContext() pure function
-│   ├── tools/
-│   │   ├── tool-router.ts          # dispatchAction() dispatcher
-│   │   └── docker-exec.ts          # Docker container management
-│   ├── memory/memory-store.ts      # SQLite CRUD for tasks/rounds
-│   ├── agent/
-│   │   ├── action-parser.ts        # parseAction() JSON parser
-│   │   └── agent-loop.ts           # Main agent loop
-│   └── server/
-│       ├── webui-server.ts         # HTTP + WebSocket server
-│       └── frontend/
-│           ├── index.html
-│           ├── app.js
-│           └── style.css
+�?  ├── index.ts                     # Entry point
+�?  ├── types.ts                     # All shared TypeScript types
+�?  ├── config/config-loader.ts      # Loads & validates YAML config
+�?  ├── credentials/credential-manager.ts
+�?  ├── event-bus/event-bus.ts       # Internal EventEmitter wrapper
+�?  ├── llm/
+�?  �?  ├── llm-adapter.ts          # LLMAdapter interface
+�?  �?  ├── mock-llm.ts             # Scripted mock for testing
+�?  �?  └── openai-adapter.ts       # Real OpenAI-compatible implementation
+�?  ├── guardrail/
+�?  �?  ├── guardrail.ts            # checkAction() pure function
+�?  �?  └── hitl-state-machine.ts   # HITL approval state machine
+�?  ├── feedback/
+�?  �?  ├── feedback-parser.ts      # parseTestResult() pure function
+�?  �?  ├── failure-classifier.ts   # classifyFailure() pure function
+�?  �?  ├── history-compressor.ts   # compressHistory() pure function
+�?  �?  ├── repetition-detector.ts  # detectRepetition() pure function
+�?  �?  └── context-assembler.ts   # assembleContext() pure function
+�?  ├── tools/
+�?  �?  ├── tool-router.ts          # dispatchAction() dispatcher
+�?  �?  └── docker-exec.ts          # Docker container management
+�?  ├── memory/memory-store.ts      # SQLite CRUD for tasks/rounds
+�?  ├── agent/
+�?  �?  ├── action-parser.ts        # parseAction() JSON parser
+�?  �?  └── agent-loop.ts           # Main agent loop
+�?  └── server/
+�?      ├── webui-server.ts         # HTTP + WebSocket server
+�?      └── frontend/
+�?          ├── index.html
+�?          ├── app.js
+�?          └── style.css
 ├── tests/
-│   ├── helpers/fixtures.ts          # Shared test fixtures
-│   ├── config-loader.test.ts
-│   ├── event-bus.test.ts
-│   ├── mock-llm.test.ts
-│   ├── guardrail.test.ts
-│   ├── hitl-state-machine.test.ts
-│   ├── feedback-parser.test.ts
-│   ├── failure-classifier.test.ts
-│   ├── history-compressor.test.ts
-│   ├── repetition-detector.test.ts
-│   ├── context-assembler.test.ts
-│   ├── action-parser.test.ts
-│   ├── memory-store.test.ts
-│   ├── docker-exec.test.ts
-│   ├── tool-router.test.ts
-│   ├── agent-loop.test.ts
-│   ├── credential-manager.test.ts
-│   ├── openai-adapter.test.ts
-│   ├── webui-server.test.ts
-│   └── mechanism-demo.test.ts      # D1, D2, D3 demos
+�?  ├── helpers/fixtures.ts          # Shared test fixtures
+�?  ├── config-loader.test.ts
+�?  ├── event-bus.test.ts
+�?  ├── mock-llm.test.ts
+�?  ├── guardrail.test.ts
+�?  ├── hitl-state-machine.test.ts
+�?  ├── feedback-parser.test.ts
+�?  ├── failure-classifier.test.ts
+�?  ├── history-compressor.test.ts
+�?  ├── repetition-detector.test.ts
+�?  ├── context-assembler.test.ts
+�?  ├── action-parser.test.ts
+�?  ├── memory-store.test.ts
+�?  ├── docker-exec.test.ts
+�?  ├── tool-router.test.ts
+�?  ├── agent-loop.test.ts
+�?  ├── credential-manager.test.ts
+�?  ├── openai-adapter.test.ts
+�?  ├── webui-server.test.ts
+�?  └── mechanism-demo.test.ts      # D1, D2, D3 demos
 └── docs/superpowers/plans/
 ```
 
@@ -94,31 +94,15 @@ harness_project/
 
 ```
 Task 1 (scaffolding + types)
-├── Task 2 (config loader)          ─┐
-├── Task 3 (event bus)               ├─ Phase 1: parallel
-├── Task 4 (LLM adapter + mock)     ─┘
-│
-├── Task 5 (guardrail)              ─┐
-├── Task 6 (HITL state machine)      │
-├── Task 7 (feedback parser)         ├─ Phase 2: parallel (after Phase 1)
-├── Task 8 (failure classifier)      │
-├── Task 9 (history compressor)      │
-├── Task 10 (repetition detector)    │
-├── Task 11 (context assembler)      │
-├── Task 12 (action parser)         ─┘
-│
-├── Task 13 (memory store)          ─┐
-├── Task 14 (docker exec)            ├─ Phase 3: parallel (after Phase 1)
-├── Task 15 (tool router)           ─┘  (depends on Task 14 + Task 7)
-├── Task 16 (credential manager)    ─┘
-│
-├── Task 17 (agent loop)            ─── Phase 4 (depends on Phase 2 + 3)
+├── Task 2 (config loader)          ─�?├── Task 3 (event bus)               ├─ Phase 1: parallel
+├── Task 4 (LLM adapter + mock)     ─�?�?├── Task 5 (guardrail)              ─�?├── Task 6 (HITL state machine)      �?├── Task 7 (feedback parser)         ├─ Phase 2: parallel (after Phase 1)
+├── Task 8 (failure classifier)      �?├── Task 9 (history compressor)      �?├── Task 10 (repetition detector)    �?├── Task 11 (context assembler)      �?├── Task 12 (action parser)         ─�?�?├── Task 13 (memory store)          ─�?├── Task 14 (docker exec)            ├─ Phase 3: parallel (after Phase 1)
+├── Task 15 (tool router)           ─�? (depends on Task 14 + Task 7)
+├── Task 16 (credential manager)    ─�?�?├── Task 17 (agent loop)            ─── Phase 4 (depends on Phase 2 + 3)
 ├── Task 18 (openai adapter)       ─── Phase 4 (depends on Task 4)
-│
-├── Task 19 (webui server)         ─── Phase 5 (depends on Task 17)
+�?├── Task 19 (webui server)         ─── Phase 5 (depends on Task 17)
 ├── Task 20 (frontend spa)         ─── Phase 5 (depends on Task 19)
-│
-├── Task 21 (dockerfile)           ─── Phase 6 (depends on all)
+�?├── Task 21 (dockerfile)           ─── Phase 6 (depends on all)
 ├── Task 22 (mechanism demos)      ─── Phase 6 (depends on Task 17)
 └── Task 23 (ci config)            ─── Phase 6 (depends on Task 22)
 ```
@@ -126,6 +110,7 @@ Task 1 (scaffolding + types)
 ---
 
 ### Task 1: Project Scaffolding + Shared Types
+> Status: COMPLETED | Commit: 659e757
 
 **Files:**
 - Create: `package.json`, `tsconfig.json`, `vitest.config.ts`, `.gitignore`
@@ -135,7 +120,7 @@ Task 1 (scaffolding + types)
 **Interfaces:**
 - Produces: All shared types (`Action`, `FeedbackSignal`, `Failure`, `FailureType`, `GuardrailResult`, `LLMContext`, `LLMResponse`, `Task`, `Round`, `Config`, `EventTypes`) used by all subsequent tasks.
 
-- [ ] **Step 1: Create package.json**
+- [x] **Step 1: Create package.json**
 
 ```json
 {
@@ -170,7 +155,7 @@ Task 1 (scaffolding + types)
 }
 ```
 
-- [ ] **Step 2: Create tsconfig.json**
+- [x] **Step 2: Create tsconfig.json**
 
 ```json
 {
@@ -192,7 +177,7 @@ Task 1 (scaffolding + types)
 }
 ```
 
-- [ ] **Step 3: Create vitest.config.ts**
+- [x] **Step 3: Create vitest.config.ts**
 
 ```typescript
 import { defineConfig } from 'vitest/config';
@@ -206,7 +191,7 @@ export default defineConfig({
 });
 ```
 
-- [ ] **Step 4: Create .gitignore**
+- [x] **Step 4: Create .gitignore**
 
 ```
 node_modules/
@@ -218,7 +203,7 @@ data/
 coverage/
 ```
 
-- [ ] **Step 5: Create src/types.ts**
+- [x] **Step 5: Create src/types.ts**
 
 ```typescript
 export type Action =
@@ -315,7 +300,7 @@ export interface EventTypes {
 }
 ```
 
-- [ ] **Step 6: Create tests/helpers/fixtures.ts**
+- [x] **Step 6: Create tests/helpers/fixtures.ts**
 
 ```typescript
 import type { FeedbackSignal } from '../../src/types.js';
@@ -368,17 +353,17 @@ export const importErrorReport = {
 };
 ```
 
-- [ ] **Step 7: Install dependencies and verify**
+- [x] **Step 7: Install dependencies and verify**
 
 Run: `npm install`
 Expected: Dependencies installed successfully.
 
-- [ ] **Step 8: Verify TypeScript compiles**
+- [x] **Step 8: Verify TypeScript compiles**
 
 Run: `npx tsc --noEmit`
 Expected: No errors.
 
-- [ ] **Step 9: Commit**
+- [x] **Step 9: Commit**
 
 ```bash
 git init
@@ -389,6 +374,7 @@ git commit -m "chore: project scaffolding + shared types"
 ---
 
 ### Task 2: Config Loader
+> Status: COMPLETED | Commit: 02ec406 (fix: 6eea2fd)
 
 **Files:**
 - Create: `src/config/config-loader.ts`, `config.yaml`, `tests/config-loader.test.ts`
@@ -397,7 +383,7 @@ git commit -m "chore: project scaffolding + shared types"
 - Consumes: `Config` type from `src/types.ts`
 - Produces: `loadConfig(path: string): Config`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```typescript
 // tests/config-loader.test.ts
@@ -454,12 +440,12 @@ debug: false
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx vitest run tests/config-loader.test.ts`
 Expected: FAIL with "Cannot find module"
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 ```typescript
 // src/config/config-loader.ts
@@ -520,7 +506,7 @@ function validateConfig(parsed: Record<string, unknown>): Config {
 }
 ```
 
-- [ ] **Step 4: Create default config.yaml**
+- [x] **Step 4: Create default config.yaml**
 
 ```yaml
 llm:
@@ -550,12 +536,12 @@ docker:
 debug: false
 ```
 
-- [ ] **Step 5: Run test to verify it passes**
+- [x] **Step 5: Run test to verify it passes**
 
 Run: `npx vitest run tests/config-loader.test.ts`
 Expected: 3 tests PASS
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add -A
@@ -565,6 +551,7 @@ git commit -m "feat: config loader with YAML parsing and defaults"
 ---
 
 ### Task 3: Event Bus
+> Status: COMPLETED | Commit: 8abeb76
 
 **Files:**
 - Create: `src/event-bus/event-bus.ts`, `tests/event-bus.test.ts`
@@ -573,7 +560,7 @@ git commit -m "feat: config loader with YAML parsing and defaults"
 - Consumes: `EventTypes` from `src/types.ts`
 - Produces: `EventBus` class with `emit()`, `on()`, `off()`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```typescript
 // tests/event-bus.test.ts
@@ -611,12 +598,12 @@ describe('EventBus', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx vitest run tests/event-bus.test.ts`
 Expected: FAIL
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 ```typescript
 // src/event-bus/event-bus.ts
@@ -641,12 +628,12 @@ export class EventBus extends EventEmitter {
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npx vitest run tests/event-bus.test.ts`
 Expected: 3 tests PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add -A
@@ -656,6 +643,7 @@ git commit -m "feat: event bus for internal module communication"
 ---
 
 ### Task 4: LLM Adapter Interface + Mock LLM
+> Status: COMPLETED | Commit: 5bffbfb
 
 **Files:**
 - Create: `src/llm/llm-adapter.ts`, `src/llm/mock-llm.ts`, `tests/mock-llm.test.ts`
@@ -664,7 +652,7 @@ git commit -m "feat: event bus for internal module communication"
 - Consumes: `LLMContext`, `LLMResponse`, `Action` from `src/types.ts`
 - Produces: `LLMAdapter` interface, `MockLLM` class
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```typescript
 // tests/mock-llm.test.ts
@@ -706,12 +694,12 @@ describe('MockLLM', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx vitest run tests/mock-llm.test.ts`
 Expected: FAIL
 
-- [ ] **Step 3: Write LLMAdapter interface and MockLLM**
+- [x] **Step 3: Write LLMAdapter interface and MockLLM**
 
 ```typescript
 // src/llm/llm-adapter.ts
@@ -747,12 +735,12 @@ export class MockLLM implements LLMAdapter {
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npx vitest run tests/mock-llm.test.ts`
 Expected: 3 tests PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add -A
@@ -762,6 +750,8 @@ git commit -m "feat: LLM adapter interface and mock LLM for testing"
 ---
 
 ### Task 5: Guardrail
+> Status: COMPLETED | Commit: ba74c13 (fix: fa18178)
+> Commit: a74c13 (fix: a18178)
 
 **Files:**
 - Create: `src/guardrail/guardrail.ts`, `tests/guardrail.test.ts`
@@ -770,7 +760,7 @@ git commit -m "feat: LLM adapter interface and mock LLM for testing"
 - Consumes: `Action`, `GuardrailResult`, `Config` from `src/types.ts`
 - Produces: `Guardrail` class with `checkAction(action: Action): GuardrailResult`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```typescript
 // tests/guardrail.test.ts
@@ -822,12 +812,12 @@ describe('Guardrail', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx vitest run tests/guardrail.test.ts`
 Expected: FAIL
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 ```typescript
 // src/guardrail/guardrail.ts
@@ -879,12 +869,12 @@ export class Guardrail {
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npx vitest run tests/guardrail.test.ts`
 Expected: 7 tests PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add -A
@@ -894,6 +884,8 @@ git commit -m "feat: guardrail with pattern matching and path checking"
 ---
 
 ### Task 6: HITL State Machine
+> Status: COMPLETED | Commit: b56b6ae
+> Commit: 56b6ae"
 
 **Files:**
 - Create: `src/guardrail/hitl-state-machine.ts`, `tests/hitl-state-machine.test.ts`
@@ -902,7 +894,7 @@ git commit -m "feat: guardrail with pattern matching and path checking"
 - Consumes: `EventBus` from Task 3, `Action` from `src/types.ts`
 - Produces: `HitlStateMachine` class, `HitlState` type
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```typescript
 // tests/hitl-state-machine.test.ts
@@ -957,12 +949,12 @@ describe('HitlStateMachine', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx vitest run tests/hitl-state-machine.test.ts`
 Expected: FAIL
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 ```typescript
 // src/guardrail/hitl-state-machine.ts
@@ -1010,12 +1002,12 @@ export class HitlStateMachine {
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npx vitest run tests/hitl-state-machine.test.ts`
 Expected: 6 tests PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add -A
@@ -1025,6 +1017,7 @@ git commit -m "feat: HITL state machine with timeout auto-reject"
 ---
 
 ### Task 7: Feedback Parser
+> Status: COMPLETED | Commit: d190e68 (fix: 155c790)
 
 **Files:**
 - Create: `src/feedback/feedback-parser.ts`, `tests/feedback-parser.test.ts`
@@ -1033,7 +1026,7 @@ git commit -m "feat: HITL state machine with timeout auto-reject"
 - Consumes: `FeedbackSignal`, `Failure` from `src/types.ts`
 - Produces: `parseTestResult(jsonReport: unknown): FeedbackSignal`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```typescript
 // tests/feedback-parser.test.ts
@@ -1068,12 +1061,12 @@ describe('FeedbackParser', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx vitest run tests/feedback-parser.test.ts`
 Expected: FAIL
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 ```typescript
 // src/feedback/feedback-parser.ts
@@ -1137,12 +1130,12 @@ function inferFailureType(failures: Failure[]): FailureType {
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npx vitest run tests/feedback-parser.test.ts`
 Expected: 5 tests PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add -A
@@ -1152,6 +1145,7 @@ git commit -m "feat: feedback parser for pytest JSON reports"
 ---
 
 ### Task 8: Failure Classifier
+> Status: COMPLETED | Commit: 46be4b4
 
 **Files:**
 - Create: `src/feedback/failure-classifier.ts`, `tests/failure-classifier.test.ts`
@@ -1160,7 +1154,7 @@ git commit -m "feat: feedback parser for pytest JSON reports"
 - Consumes: `FeedbackSignal`, `FailureType` from `src/types.ts`
 - Produces: `classifyFailure(feedback: FeedbackSignal): FailureType`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```typescript
 // tests/failure-classifier.test.ts
@@ -1185,12 +1179,12 @@ describe('FailureClassifier', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx vitest run tests/failure-classifier.test.ts`
 Expected: FAIL
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 ```typescript
 // src/feedback/failure-classifier.ts
@@ -1207,12 +1201,12 @@ export function classifyFailure(feedback: FeedbackSignal): FailureType {
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npx vitest run tests/failure-classifier.test.ts`
 Expected: 6 tests PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add -A
@@ -1222,6 +1216,7 @@ git commit -m "feat: failure classifier for categorizing test failures"
 ---
 
 ### Task 9: History Compressor
+> Status: COMPLETED | Commit: 8cce24c
 
 **Files:**
 - Create: `src/feedback/history-compressor.ts`, `tests/history-compressor.test.ts`
@@ -1230,7 +1225,7 @@ git commit -m "feat: failure classifier for categorizing test failures"
 - Consumes: `Round` from `src/types.ts`
 - Produces: `compressHistory(rounds: Round[], maxTokens: number): string`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```typescript
 // tests/history-compressor.test.ts
@@ -1268,12 +1263,12 @@ describe('HistoryCompressor', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx vitest run tests/history-compressor.test.ts`
 Expected: FAIL
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 ```typescript
 // src/feedback/history-compressor.ts
@@ -1312,12 +1307,12 @@ function formatAction(action: Round['action']): string {
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npx vitest run tests/history-compressor.test.ts`
 Expected: 4 tests PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add -A
@@ -1327,6 +1322,7 @@ git commit -m "feat: history compressor for multi-round context management"
 ---
 
 ### Task 10: Repetition Detector
+> Status: COMPLETED | Commit: ed4f2d8
 
 **Files:**
 - Create: `src/feedback/repetition-detector.ts`, `tests/repetition-detector.test.ts`
@@ -1335,7 +1331,7 @@ git commit -m "feat: history compressor for multi-round context management"
 - Consumes: `Round` from `src/types.ts`
 - Produces: `detectRepetition(rounds: Round[], threshold: number): boolean`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```typescript
 // tests/repetition-detector.test.ts
@@ -1361,12 +1357,12 @@ describe('RepetitionDetector', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx vitest run tests/repetition-detector.test.ts`
 Expected: FAIL
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 ```typescript
 // src/feedback/repetition-detector.ts
@@ -1386,12 +1382,12 @@ function failureKey(round: Round): string {
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npx vitest run tests/repetition-detector.test.ts`
 Expected: 5 tests PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add -A
@@ -1401,6 +1397,7 @@ git commit -m "feat: repetition detector to prevent infinite loops"
 ---
 
 ### Task 11: Context Assembler
+> Status: COMPLETED | Commit: fd3d295
 
 **Files:**
 - Create: `src/feedback/context-assembler.ts`, `tests/context-assembler.test.ts`
@@ -1409,7 +1406,7 @@ git commit -m "feat: repetition detector to prevent infinite loops"
 - Consumes: `LLMContext`, `FeedbackSignal`, `Round`, `Config` from `src/types.ts`; `compressHistory` from Task 9
 - Produces: `assembleContext(params): LLMContext`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```typescript
 // tests/context-assembler.test.ts
@@ -1446,12 +1443,12 @@ describe('ContextAssembler', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx vitest run tests/context-assembler.test.ts`
 Expected: FAIL
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 ```typescript
 // src/feedback/context-assembler.ts
@@ -1480,12 +1477,12 @@ export function assembleContext(params: { task: string; testFiles: Record<string
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npx vitest run tests/context-assembler.test.ts`
 Expected: 2 tests PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add -A
@@ -1495,6 +1492,7 @@ git commit -m "feat: context assembler for LLM context construction"
 ---
 
 ### Task 12: Action Parser
+> Status: COMPLETED | Commit: 8b1f6bb
 
 **Files:**
 - Create: `src/agent/action-parser.ts`, `tests/action-parser.test.ts`
@@ -1503,7 +1501,7 @@ git commit -m "feat: context assembler for LLM context construction"
 - Consumes: `Action` from `src/types.ts`
 - Produces: `parseAction(content: string): Action`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```typescript
 // tests/action-parser.test.ts
@@ -1527,12 +1525,12 @@ describe('ActionParser', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx vitest run tests/action-parser.test.ts`
 Expected: FAIL
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 ```typescript
 // src/agent/action-parser.ts
@@ -1569,12 +1567,12 @@ function extractJson(content: string): string {
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npx vitest run tests/action-parser.test.ts`
 Expected: 8 tests PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add -A
@@ -1584,6 +1582,7 @@ git commit -m "feat: action parser for LLM JSON output"
 ---
 
 ### Task 13: Memory Store
+> Status: COMPLETED | Commit: e248f47
 
 **Files:**
 - Create: `src/memory/memory-store.ts`, `tests/memory-store.test.ts`
@@ -1592,7 +1591,7 @@ git commit -m "feat: action parser for LLM JSON output"
 - Consumes: `Task`, `Round` from `src/types.ts`
 - Produces: `MemoryStore` class with `saveTask`, `saveRound`, `getTask`, `listTasks`, `updateTaskStatus`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```typescript
 // tests/memory-store.test.ts
@@ -1638,12 +1637,12 @@ describe('MemoryStore', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx vitest run tests/memory-store.test.ts`
 Expected: FAIL
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 ```typescript
 // src/memory/memory-store.ts
@@ -1696,12 +1695,12 @@ export class MemoryStore {
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npx vitest run tests/memory-store.test.ts`
 Expected: 5 tests PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add -A
@@ -1711,6 +1710,7 @@ git commit -m "feat: memory store with SQLite persistence"
 ---
 
 ### Task 14: Docker Exec
+> Status: COMPLETED | Commit: 134f34d
 
 **Files:**
 - Create: `src/tools/docker-exec.ts`, `tests/docker-exec.test.ts`
@@ -1719,7 +1719,7 @@ git commit -m "feat: memory store with SQLite persistence"
 - Consumes: `Config` from `src/types.ts`
 - Produces: `DockerExec` class with `createContainer`, `writeFile`, `readFile`, `exec`, `remove`
 
-- [ ] **Step 1: Write the failing test (with mocked dockerode)**
+- [x] **Step 1: Write the failing test (with mocked dockerode)**
 
 ```typescript
 // tests/docker-exec.test.ts
@@ -1764,12 +1764,12 @@ describe('DockerExec', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx vitest run tests/docker-exec.test.ts`
 Expected: FAIL
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 ```typescript
 // src/tools/docker-exec.ts
@@ -1871,12 +1871,12 @@ export class DockerExec {
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npx vitest run tests/docker-exec.test.ts`
 Expected: 3 tests PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add -A
@@ -1886,6 +1886,7 @@ git commit -m "feat: docker exec for isolated code execution"
 ---
 
 ### Task 15: Tool Router
+> Status: COMPLETED | Commit: 877e1ed
 
 **Files:**
 - Create: `src/tools/tool-router.ts`, `tests/tool-router.test.ts`
@@ -1894,7 +1895,7 @@ git commit -m "feat: docker exec for isolated code execution"
 - Consumes: `Action` from `src/types.ts`, `DockerExec` from Task 14, `parseTestResult` from Task 7
 - Produces: `ToolRouter` class with `dispatch(action, containerId): Promise<unknown>`
 
-- [ ] **Step 1: Write the failing test (with mocked DockerExec)**
+- [x] **Step 1: Write the failing test (with mocked DockerExec)**
 
 ```typescript
 // tests/tool-router.test.ts
@@ -1945,12 +1946,12 @@ describe('ToolRouter', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx vitest run tests/tool-router.test.ts`
 Expected: FAIL
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 ```typescript
 // src/tools/tool-router.ts
@@ -1984,12 +1985,12 @@ export class ToolRouter {
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npx vitest run tests/tool-router.test.ts`
 Expected: 4 tests PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add -A
@@ -1999,6 +2000,7 @@ git commit -m "feat: tool router for dispatching actions to Docker"
 ---
 
 ### Task 16: Credential Manager
+> Status: COMPLETED | Commit: 45617bd
 
 **Files:**
 - Create: `src/credentials/credential-manager.ts`, `tests/credential-manager.test.ts`
@@ -2006,7 +2008,7 @@ git commit -m "feat: tool router for dispatching actions to Docker"
 **Interfaces:**
 - Produces: `CredentialManager` class with `hasKey`, `getKey`, `setKey`, `clearKey`, `getStatus`
 
-- [ ] **Step 1: Write the failing test (with mocked keytar)**
+- [x] **Step 1: Write the failing test (with mocked keytar)**
 
 ```typescript
 // tests/credential-manager.test.ts
@@ -2052,12 +2054,12 @@ describe('CredentialManager', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx vitest run tests/credential-manager.test.ts`
 Expected: FAIL
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 ```typescript
 // src/credentials/credential-manager.ts
@@ -2084,12 +2086,12 @@ function maskKey(key: string): string {
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npx vitest run tests/credential-manager.test.ts`
 Expected: 5 tests PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add -A
@@ -2099,6 +2101,7 @@ git commit -m "feat: credential manager with OS keychain storage"
 ---
 
 ### Task 17: Agent Loop
+> Status: COMPLETED | Commit: 609407a (fix: c6a2be0)
 
 **Files:**
 - Create: `src/agent/agent-loop.ts`, `tests/agent-loop.test.ts`
@@ -2107,7 +2110,7 @@ git commit -m "feat: credential manager with OS keychain storage"
 - Consumes: `LLMAdapter` (Task 4), `Guardrail` (Task 5), `HitlStateMachine` (Task 6), `ToolRouter` (Task 15), `MemoryStore` (Task 13), `assembleContext` (Task 11), `detectRepetition` (Task 10), `parseAction` (Task 12), `classifyFailure` (Task 8), `EventBus` (Task 3), `Config`, `Task`, `Round` from `src/types.ts`
 - Produces: `AgentLoop` class with `run(task: Task): Promise<TaskStatus>`
 
-- [ ] **Step 1: Write the failing test (with mocked ToolRouter)**
+- [x] **Step 1: Write the failing test (with mocked ToolRouter)**
 
 ```typescript
 // tests/agent-loop.test.ts
@@ -2182,12 +2185,12 @@ describe('AgentLoop', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx vitest run tests/agent-loop.test.ts`
 Expected: FAIL
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 ```typescript
 // src/agent/agent-loop.ts
@@ -2282,12 +2285,12 @@ export class AgentLoop {
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npx vitest run tests/agent-loop.test.ts`
 Expected: 3 tests PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add -A
@@ -2297,6 +2300,7 @@ git commit -m "feat: agent loop with feedback-driven self-correction"
 ---
 
 ### Task 18: OpenAI Adapter
+> Status: COMPLETED | Commit: c2efed9
 
 **Files:**
 - Create: `src/llm/openai-adapter.ts`, `tests/openai-adapter.test.ts`
@@ -2305,7 +2309,7 @@ git commit -m "feat: agent loop with feedback-driven self-correction"
 - Consumes: `LLMAdapter` from Task 4, `LLMContext`, `LLMResponse` from `src/types.ts`, `parseAction` from Task 12
 - Produces: `OpenAIAdapter` class implementing `LLMAdapter`
 
-- [ ] **Step 1: Write the failing test (with mocked openai)**
+- [x] **Step 1: Write the failing test (with mocked openai)**
 
 ```typescript
 // tests/openai-adapter.test.ts
@@ -2331,12 +2335,12 @@ describe('OpenAIAdapter', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx vitest run tests/openai-adapter.test.ts`
 Expected: FAIL
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 ```typescript
 // src/llm/openai-adapter.ts
@@ -2384,12 +2388,12 @@ export class OpenAIAdapter implements LLMAdapter {
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npx vitest run tests/openai-adapter.test.ts`
 Expected: 1 test PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add -A
@@ -2399,6 +2403,7 @@ git commit -m "feat: OpenAI-compatible LLM adapter"
 ---
 
 ### Task 19: WebUI Server
+> Status: COMPLETED | Commit: 9c2b80a
 
 **Files:**
 - Create: `src/server/webui-server.ts`, `tests/webui-server.test.ts`
@@ -2407,7 +2412,7 @@ git commit -m "feat: OpenAI-compatible LLM adapter"
 - Consumes: `EventBus` (Task 3), `MemoryStore` (Task 13)
 - Produces: `WebUIServer` class with `start()`, `stop()`, `getPort()`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```typescript
 // tests/webui-server.test.ts
@@ -2472,12 +2477,12 @@ describe('WebUIServer', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx vitest run tests/webui-server.test.ts`
 Expected: FAIL
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 ```typescript
 // src/server/webui-server.ts
@@ -2536,12 +2541,12 @@ export class WebUIServer {
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npx vitest run tests/webui-server.test.ts`
 Expected: 4 tests PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add -A
@@ -2551,6 +2556,7 @@ git commit -m "feat: WebUI server with WebSocket and REST API"
 ---
 
 ### Task 20: Frontend SPA
+> Status: COMPLETED | Commit: 142b38b
 
 **Files:**
 - Create: `src/server/frontend/index.html`, `src/server/frontend/app.js`, `src/server/frontend/style.css`
@@ -2559,7 +2565,7 @@ git commit -m "feat: WebUI server with WebSocket and REST API"
 - Consumes: WebSocket events from Task 19, REST API from Task 19
 - Produces: Browser-based interactive console
 
-- [ ] **Step 1: Create index.html**
+- [x] **Step 1: Create index.html**
 
 ```html
 <!DOCTYPE html>
@@ -2626,7 +2632,7 @@ git commit -m "feat: WebUI server with WebSocket and REST API"
 </html>
 ```
 
-- [ ] **Step 2: Create style.css**
+- [x] **Step 2: Create style.css**
 
 ```css
 * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -2662,7 +2668,7 @@ textarea, input[type="text"] { width: 100%; background: #16213e; color: #e0e0e0;
 .status-running { background: #1a1a4a; }
 ```
 
-- [ ] **Step 3: Create app.js**
+- [x] **Step 3: Create app.js**
 
 ```javascript
 let ws = null;
@@ -2757,13 +2763,13 @@ async function loadKeyStatus() {
 }
 ```
 
-- [ ] **Step 4: Verify manually**
+- [x] **Step 4: Verify manually**
 
 Run: `npm run dev`
 Open browser to `http://localhost:3000`
 Expected: WebUI loads with New Task, History, API Key tabs.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add -A
@@ -2773,6 +2779,7 @@ git commit -m "feat: frontend SPA with task submission and real-time event displ
 ---
 
 ### Task 21: Dockerfile + Entry Point
+> Status: COMPLETED | Commit: 11d0d27 (fix: 79dcd2c)
 
 **Files:**
 - Create: `Dockerfile`
@@ -2782,7 +2789,7 @@ git commit -m "feat: frontend SPA with task submission and real-time event displ
 - Consumes: All modules from previous tasks
 - Produces: Runnable Docker image and entry point
 
-- [ ] **Step 1: Create src/index.ts**
+- [x] **Step 1: Create src/index.ts**
 
 ```typescript
 // src/index.ts
@@ -2826,7 +2833,7 @@ async function main() {
 main().catch(console.error);
 ```
 
-- [ ] **Step 2: Create Dockerfile**
+- [x] **Step 2: Create Dockerfile**
 
 ```dockerfile
 FROM node:20-alpine AS builder
@@ -2848,12 +2855,12 @@ EXPOSE 3000
 CMD ["node", "dist/index.js"]
 ```
 
-- [ ] **Step 3: Build and verify**
+- [x] **Step 3: Build and verify**
 
 Run: `docker build -t harness-python:latest .`
 Expected: Image builds successfully.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add -A
@@ -2863,6 +2870,7 @@ git commit -m "feat: Dockerfile and entry point"
 ---
 
 ### Task 22: Mechanism Demos
+> Status: COMPLETED | Commit: e2d636c
 
 **Files:**
 - Create: `tests/mechanism-demo.test.ts`
@@ -2871,7 +2879,7 @@ git commit -m "feat: Dockerfile and entry point"
 - Consumes: All core mechanisms from previous tasks
 - Produces: Three deterministic demos (D1, D2, D3) required by course §A.6
 
-- [ ] **Step 1: Write the demo tests**
+- [x] **Step 1: Write the demo tests**
 
 ```typescript
 // tests/mechanism-demo.test.ts
@@ -2990,12 +2998,12 @@ describe('Mechanism Demos (§A.6)', () => {
 });
 ```
 
-- [ ] **Step 2: Run tests to verify they pass**
+- [x] **Step 2: Run tests to verify they pass**
 
 Run: `npx vitest run tests/mechanism-demo.test.ts`
 Expected: 3 tests PASS (D1, D2, D3)
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add -A
@@ -3005,6 +3013,7 @@ git commit -m "feat: mechanism demos (D1 guardrail, D2 feedback loop, D3 repetit
 ---
 
 ### Task 23: CI Config
+> Status: COMPLETED | Commit: d93b8da (fix: 8884e76)
 
 **Files:**
 - Create: `.gitlab-ci.yml`
@@ -3012,7 +3021,7 @@ git commit -m "feat: mechanism demos (D1 guardrail, D2 feedback loop, D3 repetit
 **Interfaces:**
 - Produces: CI pipeline with `unit-test` job
 
-- [ ] **Step 1: Create .gitlab-ci.yml**
+- [x] **Step 1: Create .gitlab-ci.yml**
 
 ```yaml
 stages:
@@ -3045,12 +3054,12 @@ docker-build:
     - main
 ```
 
-- [ ] **Step 2: Verify CI config is valid**
+- [x] **Step 2: Verify CI config is valid**
 
 Run: `npx vitest run` (ensure all tests pass locally)
 Expected: All tests PASS.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add -A

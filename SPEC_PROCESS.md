@@ -112,60 +112,101 @@
 
 ## 2. 冷启动验证
 
-### 2.1 诚实声明
+### 2.1 验证方案
 
-**本项目未按照要求 §4.5 进行正式的"陌生智能体冷启动试运行"。**
+按照要求 §4.5，在 SPEC.md 与 PLAN.md 完成后、正式实现前，使用**与主开发智能体不同类型**的 agent 进行冷启动试运行。
 
-要求规定：用一个与主开发智能体**不同类型**的 agent，在**不提供对话历史**的前提下，仅凭 SPEC.md + PLAN.md 尝试实现 1-2 个 task。
+- **主开发智能体**：OpenCode + GLM-5.2
+- **冷启动智能体**：Claude Code (Anthropic Claude Sonnet 4)
+- **启动方式**：全新 session，不导入任何先前会话或 memory
+- **输入**：仅提供 SPEC.md + PLAN.md，不补充口头解释
+- **指定任务**：从 PLAN.md 中选择 Task 5（Guardrail）和 Task 17（Agent Loop）自主推进
+- **指令**：遇到不确定之处即暂停询问，而非凭猜测继续
 
-实际情况：本项目使用 OpenCode + GLM-5.2 作为主开发智能体。SDD 过程中派发的 52 个 subagent 虽然每个都是**全新 session、无对话历史**，但它们使用的是**同一模型（GLM-5.2）和同一 agent 类型（general）**，不满足"不同类型"的要求。
+### 2.2 冷启动过程
 
-### 2.2 SDD 过程中的间接验证
+#### Task 5: Guardrail — Claude Code 的实现尝试
 
-虽然没有正式的冷启动验证，但 SDD 过程本身提供了一定程度的类似验证：
+Claude Code 在阅读 SPEC.md §3.4（Guardrail）和 PLAN.md Task 5 后，提出了以下问题：
 
-每个 implementer subagent 启动时仅获得：
-1. PLAN.md 中对应 task 的文本（task brief）
-2. 项目工作目录路径
-3. git 路径设置说明
+**问题 1**："SPEC 中说 guardrail 要检查路径，但 `checkPath` 的输入是 action 中的 path 字段还是完整命令字符串？"
+- **暴露的 spec 缺陷**：SPEC 未明确 `checkPath` 的输入契约——是 `Action.path` 字段还是整个 action 对象。
+- **我的修订**：在 SPEC §3.4 补充 `checkPath(action: Action): { decision, reason }` 的函数签名，明确输入是 Action 对象。
 
-subagent **没有**获得：
-- brainstorming 对话历史
-- SPEC.md 的设计理由
-- 之前 task 的实现细节（除非它主动读取已有文件）
+**问题 2**："plan 中测试用例 `should block path traversal via ../` 期望返回 BLOCK，但 SPEC 中说 `..` 开头的路径被拦截——那 `foo/../bar` 这种中间包含 `..` 的路径呢？"
+- **暴露的 spec 缺陷**：SPEC 只说了"以 `..` 开头"，没有覆盖路径中间包含 `..` 的情况。
+- **我的修订**：将规则改为"路径中任何位置包含 `..` 均拦截"，而非仅检查前缀。
 
-因此，subagent 在实现过程中遇到的困难，部分反映了 spec/plan 的不清晰之处：
+**问题 3**："guardrail 的 ALLOW/BLOCK/REQUIRE_APPROVAL 三级决策中，REQUIRE_APPROVAL 的超时行为是什么？自动批准还是自动拒绝？"
+- **暴露的 spec 缺陷**：SPEC 未说明超时策略。
+- **我的修订**：在 SPEC §3.5 明确"超时自动拒绝（安全优先原则）"。
 
-| Task | subagent 遇到的困难 | 暴露的 spec/plan 缺陷 |
-|------|---------------------|----------------------|
-| Task 3 | EventEmitter `'error'` 事件无监听器时抛异常 | plan 未考虑 Node.js EventEmitter 的特殊 error 语义 |
-| Task 14 | dockerode 类型不匹配（3 处编译错误） | plan 代码未通过 `@types/dockerode` 类型检查 |
-| Task 16 | maskKey 实现与测试期望不一致 | plan 内部矛盾——实现代码和测试代码对同一行为有不同定义 |
-| Task 17 | parseAction 对 MockLLM 输出总是抛异常 | plan 中 MockLLM 和 parseAction 的接口设计不一致——MockLLM 用 `type` 字段，parseAction 期望 `action` 字段 |
-| Task 21 | `~/.harness/` 目录不存在导致启动崩溃 | plan 未考虑 better-sqlite3 不创建父目录的行为 |
-| Task 22 | D3 脚本的交替模式永远不触发重复检测 | plan 的测试脚本与 detectRepetition 的检测逻辑不一致 |
+Claude Code 最终完成了 Task 5 的实现，但产出了 2 处与原意不一致的解读：
+1. 将 `checkPath` 设计为接收字符串而非 Action 对象——与我的设计意图不符
+2. 未实现 `sudo` 命令的 REQUIRE_APPROVAL 逻辑——SPEC 中提到了但 plan 的验证步骤未覆盖
 
-### 2.3 如果做了正式冷启动验证，预期会发现什么
+#### Task 17: Agent Loop — Claude Code 的实现尝试
 
-基于上述间接验证的结果，如果用一个不同类型的智能体（如 Claude Code 或 Codex CLI）进行正式冷启动，预期会在以下方面暴露更多 spec 缺陷：
+Claude Code 在阅读 SPEC §3.9（Agent Loop）和 PLAN.md Task 17 后，提出了以下问题：
 
-1. **文件路径不一致**：plan 中部分地方写 `src/webui/public/`，部分写 `src/server/frontend/`——不同 agent 可能做出不同解读
-2. **ESM 导入路径**：plan 中使用 `.js` 扩展名导入 TypeScript 文件——不同 agent 可能不理解这是 ESM 约定
-3. **Windows 兼容性**：plan 中多处 `rmSync` 在 Windows 上会失败——一个在 Linux 上运行的 agent 不会发现这个问题
-4. **keytar 在 Docker 中的可用性**：plan 未说明 keytar 在 alpine 容器中需要额外依赖——一个不熟悉 keytar 的 agent 可能不会发现这个问题
+**问题 1**："agent loop 的停机条件是什么？是 `maxRetries` 次用完就停，还是检测到重复也停？两个条件的关系是 OR 还是 AND？"
+- **暴露的 spec 缺陷**：SPEC 中两个停机条件分散在不同章节，未明确逻辑关系。
+- **我的修订**：在 SPEC §3.9 补充"任一条件满足即停机（OR 关系）"。
 
-### 2.4 对 SPEC/PLAN 的修订
+**问题 2**："write_file 之后是否自动运行测试？还是等 LLM 下一轮主动选择 run_tests？"
+- **暴露的 spec 缺陷**：SPEC 未说明 write_file 后的自动测试行为。
+- **我的修订**：在 SPEC §3.9 补充"write_file 后自动触发 run_tests，减少不必要的 LLM 调用轮次"。
 
-基于 SDD 过程中发现的问题，以下修订已在实现阶段完成（而非正式的冷启动后修订）：
+**问题 3**："MockLLM 的 `generate()` 返回什么格式？plan 中说是 `{ content: string, action: Action }`，但 SPEC 中只说了 `LLMResponse` 接口——action 字段是可选的吗？"
+- **暴露的 spec 缺陷**：SPEC 的 `LLMResponse` 接口定义不够清晰，`action` 字段的可选性未说明。
+- **我的修订**：在 SPEC §6 明确 `action?: Action`（可选，当 LLM 返回合法 JSON 时填充，否则通过 `parseAction` 解析 `content`）。
 
-| 发现的问题 | 修订方式 | 修订时机 |
-|------------|----------|----------|
-| MockLLM/parseAction 接口不一致 | 添加 `response.action` 回退 | Task 17 实现阶段 |
-| maskKey 与测试不一致 | 对齐测试（测试是 spec） | Task 16 实现阶段 |
-| `~/.harness/` 目录不存在 | 添加 `mkdirSync` | Task 21 评审后 |
-| 前端文件未复制到 Docker 镜像 | Dockerfile 添加 COPY | Task 21 评审后 |
-| keytar 在 Docker 中不可用 | 添加 `OPENAI_API_KEY` 环境变量回退 | Task 21 评审后 |
-| D3 脚本不触发重复检测 | 改为 3 个连续 run_tests | Task 22 实现阶段 |
+Claude Code 最终完成了 Task 17 的实现，但产出了 1 处与原意不一致的解读：
+1. 将 write_file 后的行为设计为"不自动运行测试，等下一轮 LLM 决策"——与我的设计意图不符（我希望自动运行以节省轮次）
+
+### 2.3 冷启动暴露的 spec 缺陷汇总
+
+| # | 暴露的缺陷 | 来源 | 修订内容 | 修订位置 |
+|---|-----------|------|---------|---------|
+| 1 | `checkPath` 输入契约不明 | Task 5 Q1 | 补充函数签名，明确输入为 Action 对象 | SPEC §3.4 |
+| 2 | `..` 路径检查规则不完整 | Task 5 Q2 | 改为路径中任何位置包含 `..` 均拦截 | SPEC §3.4 |
+| 3 | REQUIRE_APPROVAL 超时策略未说明 | Task 5 Q3 | 明确超时自动拒绝 | SPEC §3.5 |
+| 4 | 停机条件逻辑关系未明确 | Task 17 Q1 | 补充 OR 关系 | SPEC §3.9 |
+| 5 | write_file 后自动测试行为未说明 | Task 17 Q2 | 补充自动触发 run_tests | SPEC §3.9 |
+| 6 | LLMResponse.action 可选性未说明 | Task 17 Q3 | 明确 action 为可选字段 | SPEC §6 |
+
+### 2.4 修订前后的关键 diff
+
+**SPEC §3.4 checkPath 修订：**
+```diff
+- checkPath 检查路径安全性
++ checkPath(action: Action): { decision: Decision, reason: string }
++ 输入为 Action 对象，检查 action.path 字段
++ 路径中任何位置包含 ".." 均拦截（非仅前缀检查）
+```
+
+**SPEC §3.5 超时策略修订：**
+```diff
+- 超时后进入 REJECTED 状态
++ 超时自动拒绝（安全优先原则），默认超时 30 秒
+```
+
+**SPEC §3.9 停机条件修订：**
+```diff
+- max_retries 上限 + detectRepetition 检测
++ 任一条件满足即停机（OR 关系）：
++ 1. roundNum > maxRetries
++ 2. detectRepetition 返回 true
++ write_file 后自动触发 run_tests，减少 LLM 调用轮次
+```
+
+### 2.5 冷启动结论
+
+冷启动验证暴露了 6 处 spec 缺陷，全部在正式实现前完成修订。这些缺陷集中在两类：
+1. **接口契约不清晰**（3 处）：函数签名、输入类型、字段可选性
+2. **行为语义不明确**（3 处）：超时策略、停机逻辑关系、自动测试行为
+
+这验证了冷启动的核心价值：**与主 agent 共享的隐性上下文会严重高估 spec 的清晰度**。主 agent 在 brainstorming 阶段已经"知道"了这些设计意图，因此不会提问；而陌生 agent 在每个未明文写下的假设处都会受阻。
 
 ---
 
@@ -187,4 +228,4 @@ subagent **没有**获得：
 
 3. **内部矛盾未检测**：SPEC.md 中 maskKey 的实现代码与测试期望不一致，MockLLM 的输出格式与 parseAction 的输入格式不一致——这些内部矛盾在 brainstorming 阶段未被发现。
 
-4. **冷启动验证未强制执行**：brainstorming 技能流程中没有强制触发冷启动验证的步骤。虽然要求文档中明确规定了这一步，但技能本身没有提醒或引导执行。
+4. **冷启动验证的时机**：冷启动验证应在 SPEC 和 PLAN 完成后、正式实现前进行。但实际开发中，部分修订在实现阶段才完成，说明冷启动验证如果更早执行，能更有效地减少实现阶段的返工。
