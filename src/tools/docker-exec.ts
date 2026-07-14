@@ -79,20 +79,24 @@ export class DockerExec {
 
   private createTar(path: string, content: string): Readable {
     const filename = path.substring(path.lastIndexOf('/') + 1);
+    const contentBuf = Buffer.from(content);
     const header = Buffer.alloc(512);
     header.write(filename, 0);
-    header.write('0000644', 100);
-    header.write('0000000', 108);
-    header.write('0000000', 116);
-    header.write('00000000000', 124);
-    header.write('0', 136);
-    header.write('ustar', 257);
-    const contentBuf = Buffer.from(content);
+    header.write('0000644\0', 100);
+    header.write('0000000\0', 108);
+    header.write('0000000\0', 116);
+    const sizeOct = contentBuf.length.toString(8).padStart(11, '0');
+    header.write(sizeOct + '\0', 124);
+    header.write('00000000000\0', 136);
+    header.write('        ', 148);
+    header.write('0', 156);
+    header.write('ustar\0', 257);
+    let checksum = 0;
+    for (let i = 0; i < 512; i++) checksum += header[i];
+    const checksumOct = checksum.toString(8).padStart(6, '0');
+    header.write(checksumOct + '\0 ', 148);
     const padding = Buffer.alloc(512 - (contentBuf.length % 512));
     const endBlock = Buffer.alloc(1024);
-    let checksum = 0;
-    for (let i = 0; i < 512; i++) checksum += (i >= 148 && i < 156) ? 32 : header[i];
-    header.writeInt32BE(checksum, 148);
     return Readable.from([header, contentBuf, padding, endBlock]);
   }
 }
