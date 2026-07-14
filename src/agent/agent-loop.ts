@@ -76,6 +76,22 @@ export class AgentLoop {
           bus.emit('tool:executed', { taskId: task.id, action, result });
           let roundFeedback: FeedbackSignal | null = null;
           let failureType: FailureType | null = null;
+          if (action.type === 'write_file') {
+            const testResult = await toolRouter.dispatch({ type: 'run_tests' }, containerId) as { feedbackSignal?: FeedbackSignal };
+            if (testResult.feedbackSignal) {
+              roundFeedback = testResult.feedbackSignal;
+              failureType = classifyFailure(roundFeedback);
+              if (roundFeedback.failed === 0) {
+                const r: Round = { id: 0, taskId: task.id, roundNum, codeFiles: {}, action, feedback: roundFeedback, failureType, createdAt: new Date().toISOString() };
+                rounds.push(r); memory.saveRound(r);
+                bus.emit('round:completed', { taskId: task.id, roundNum, feedback: roundFeedback });
+                memory.updateTaskStatus(task.id, 'success');
+                bus.emit('task:completed', { taskId: task.id, status: 'success' });
+                return 'success';
+              }
+              currentFailure = roundFeedback;
+            }
+          }
           if (action.type === 'run_tests' && result.feedbackSignal) {
             roundFeedback = result.feedbackSignal;
             failureType = classifyFailure(roundFeedback);
