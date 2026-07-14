@@ -16,7 +16,7 @@ export class ToolRouter {
       case 'run_shell':
         return await this.dockerExec.exec(containerId, action.command);
       case 'run_tests': {
-        const result = await this.dockerExec.exec(containerId, 'pytest --json-report --tb=short 2>/dev/null || true');
+        const result = await this.dockerExec.exec(containerId, 'pytest --json-report --json-report-file /dev/stdout --tb=short -q 2>/dev/null || true');
         let report: unknown;
         try { report = JSON.parse(result.stdout); } catch { report = { tests: [], summary: { total: 0, passed: 0, failed: 0 } }; }
         return { feedbackSignal: parseTestResult(report) };

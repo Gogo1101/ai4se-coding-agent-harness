@@ -8,7 +8,7 @@ RUN npm run build
 
 FROM node:20-alpine
 RUN apk add --no-cache docker-cli python3 py3-pip
-RUN pip3 install pytest --break-system-packages
+RUN pip3 install pytest pytest-json-report --break-system-packages
 WORKDIR /app
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/src/server/frontend ./dist/server/frontend

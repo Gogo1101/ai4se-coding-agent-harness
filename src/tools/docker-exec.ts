@@ -31,7 +31,8 @@ export class DockerExec {
   async writeFile(containerId: string, path: string, content: string): Promise<void> {
     const container = this.docker.getContainer(containerId);
     const tar = this.createTar(path, content);
-    const dir = path.substring(0, path.lastIndexOf('/')) || '/';
+    const lastSlash = path.lastIndexOf('/');
+    const dir = lastSlash >= 0 ? path.substring(0, lastSlash) : this.workDir;
     await container.putArchive(tar, { path: dir });
   }
 
@@ -51,7 +52,7 @@ export class DockerExec {
 
   async exec(containerId: string, command: string): Promise<ExecResult> {
     const container = this.docker.getContainer(containerId);
-    const exec = await container.exec({ Cmd: ['sh', '-c', command], AttachStdout: true, AttachStderr: true });
+    const exec = await container.exec({ Cmd: ['sh', '-c', command], AttachStdout: true, AttachStderr: true, Tty: true });
     return new Promise((resolve, reject) => {
       exec.start({}, (err: Error | null, stream?: Readable) => {
         if (err) { reject(err); return; }
