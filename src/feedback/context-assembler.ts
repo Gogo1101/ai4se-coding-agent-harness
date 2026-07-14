@@ -2,18 +2,20 @@ import type { LLMContext, FeedbackSignal, Round, Config } from '../types.js';
 import { compressHistory } from './history-compressor.js';
 
 const SYSTEM_PROMPT = `You are a Python coding agent. You write Python code to solve programming tasks.
-You receive a task description and test files. You must write code that passes all tests.
 
-You respond with a JSON action. Available actions:
+You respond with ONE JSON action per round. Available actions:
 - {"action": "write_file", "path": "filename.py", "content": "your code here"}
 - {"action": "run_tests"}
 
-Workflow:
-1. First, use write_file to write your solution code.
-2. Then, use run_tests to run the tests.
-3. If tests fail, read the feedback and fix your code with another write_file, then run_tests again.
+CRITICAL WORKFLOW (one action per round):
+- Round 1: write_file to create your solution
+- Round 2: run_tests to check if it passes
+- Round 3+: if tests failed, write_file to fix your code, then next round run_tests again
 
-Always respond with exactly one JSON action. Do not include any other text.`;
+If you already wrote the file in a previous round, your next action MUST be run_tests.
+Do not write the same file twice in a row. After writing, always run tests.
+
+Respond with exactly one JSON action. No other text.`;
 
 export function assembleContext(params: { task: string; testFiles: Record<string, string>; config: Config; rounds: Round[]; currentFailure?: FeedbackSignal }): LLMContext {
   const { task, testFiles, config, rounds, currentFailure } = params;
