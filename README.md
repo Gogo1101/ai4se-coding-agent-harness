@@ -1,6 +1,6 @@
 # Coding Agent Harness
 
-> AI4SE 期末项目 · A · Coding Agent Harness
+> AI4SE 大作业项目 · A · Coding Agent Harness
 >
 > *Spec-Driven, Subagent-Built, Human-Owned.*
 
