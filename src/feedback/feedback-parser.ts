@@ -2,7 +2,7 @@ import type { FeedbackSignal, Failure, FailureType } from '../types.js';
 
 interface PytestTestEntry {
   nodeid: string; outcome: string;
-  call?: { duration: number; longrepr?: { reprcrash?: { message: string }; reprtraceback?: { chains?: Array<{ content: Array<[string, number, string, string]> }> } } };
+  call?: { duration: number; longrepr?: string | { reprcrash?: { message: string }; reprtraceback?: { chains?: Array<{ content: Array<[string, number, string, string]> }> } }; crash?: { message: string; path: string; lineno: number }; traceback?: Array<{ path: string; lineno: number; message: string }> };
 }
 interface PytestCollectorEntry { nodeid: string; outcome: string; longrepr: string; }
 interface PytestJsonReport { tests?: PytestTestEntry[]; collectors?: PytestCollectorEntry[]; summary?: { total: number; passed: number; failed: number }; }
@@ -32,14 +32,32 @@ export function parseTestResult(jsonReport: unknown): FeedbackSignal {
 }
 
 function extractFailure(test: PytestTestEntry): Failure {
-  const longrepr = test.call?.longrepr;
-  const message = longrepr?.reprcrash?.message || 'Unknown error';
-  const chains = longrepr?.reprtraceback?.chains || [];
-  const content = chains[0]?.content || [];
-  const lastLine = content[content.length - 1] || ['', 0, '', message];
-  const [file, line, func, assertion] = lastLine;
+  const call = test.call;
+  if (!call) return { testName: test.nodeid, assertion: 'Unknown error', expected: '', actual: '', traceback: '' };
+  let message = call.crash?.message || '';
+  let tracebackStr = '';
+  const longrepr = call.longrepr;
+  if (typeof longrepr === 'string') {
+    if (!message) {
+      const lines = longrepr.split('\n');
+      const errLine = lines.find(l => /^[A-Z]\w*Error:/.test(l)) || lines[lines.length - 1];
+      message = errLine ? errLine.replace(/^E\s*/, '').trim() : 'Unknown error';
+    }
+    tracebackStr = longrepr;
+  } else if (longrepr) {
+    if (!message) message = longrepr.reprcrash?.message || 'Unknown error';
+    const chains = longrepr.reprtraceback?.chains || [];
+    const content = chains[0]?.content || [];
+    const lastLine = content[content.length - 1] || ['', 0, '', message];
+    const [file, line, func, assertion] = lastLine;
+    if (!tracebackStr) tracebackStr = `${file}:${line}: ${func}`;
+    if (!message) message = assertion || message;
+  }
+  if (!tracebackStr && call.traceback) {
+    tracebackStr = call.traceback.map(t => `${t.path}:${t.lineno}: ${t.message}`).join('\n');
+  }
   const { expected, actual } = parseAssertion(message);
-  return { testName: test.nodeid, assertion: assertion || message, expected, actual, traceback: `${file}:${line}: ${func}` };
+  return { testName: test.nodeid, assertion: message, expected, actual, traceback: tracebackStr };
 }
 
 function parseAssertion(message: string): { expected: string; actual: string } {

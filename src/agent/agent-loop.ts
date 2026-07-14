@@ -26,6 +26,7 @@ export class AgentLoop {
     for (const [filename, content] of Object.entries(task.testFiles)) {
       await toolRouter.dockerExec.writeFile(containerId, `${config.docker.workDir}/${filename}`, content);
     }
+    await toolRouter.dockerExec.writeFile(containerId, `${config.docker.workDir}/conftest.py`, 'try:\n    from solution import *\nexcept ImportError:\n    pass\n');
     const rounds: Round[] = [];
     let currentFailure: FeedbackSignal | undefined;
     try {
