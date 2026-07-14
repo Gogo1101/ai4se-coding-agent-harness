@@ -81,7 +81,8 @@ export class AgentLoop {
             if (testResult.feedbackSignal) {
               roundFeedback = testResult.feedbackSignal;
               failureType = classifyFailure(roundFeedback);
-              if (roundFeedback.failed === 0) {
+              currentFailure = roundFeedback;
+              if (roundFeedback.total > 0 && roundFeedback.failed === 0) {
                 const r: Round = { id: 0, taskId: task.id, roundNum, codeFiles: {}, action, feedback: roundFeedback, failureType, createdAt: new Date().toISOString() };
                 rounds.push(r); memory.saveRound(r);
                 bus.emit('round:completed', { taskId: task.id, roundNum, feedback: roundFeedback });
@@ -89,13 +90,12 @@ export class AgentLoop {
                 bus.emit('task:completed', { taskId: task.id, status: 'success' });
                 return 'success';
               }
-              currentFailure = roundFeedback;
             }
-          }
-          if (action.type === 'run_tests' && result.feedbackSignal) {
+          } else if (action.type === 'run_tests' && result.feedbackSignal) {
             roundFeedback = result.feedbackSignal;
             failureType = classifyFailure(roundFeedback);
-            if (roundFeedback.failed === 0) {
+            currentFailure = roundFeedback;
+            if (roundFeedback.total > 0 && roundFeedback.failed === 0) {
               const r: Round = { id: 0, taskId: task.id, roundNum, codeFiles: {}, action, feedback: roundFeedback, failureType, createdAt: new Date().toISOString() };
               rounds.push(r); memory.saveRound(r);
               bus.emit('round:completed', { taskId: task.id, roundNum, feedback: roundFeedback });
@@ -103,7 +103,6 @@ export class AgentLoop {
               bus.emit('task:completed', { taskId: task.id, status: 'success' });
               return 'success';
             }
-            currentFailure = roundFeedback;
           }
           const r: Round = { id: 0, taskId: task.id, roundNum, codeFiles: {}, action, feedback: roundFeedback, failureType, createdAt: new Date().toISOString() };
           rounds.push(r); memory.saveRound(r);

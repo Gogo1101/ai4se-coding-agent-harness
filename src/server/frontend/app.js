@@ -55,7 +55,7 @@ function appendEvent(type, payload) {
   const log = document.getElementById('event-log');
   const div = document.createElement('div');
   div.className = `event event-${type.split(':')[0]}`;
-  div.textContent = `[${new Date().toLocaleTimeString()}] ${type}: ${JSON.stringify(payload).substring(0, 200)}`;
+    div.textContent = `[${new Date().toLocaleTimeString()}] ${type}: ${JSON.stringify(payload)}`;
   log.appendChild(div);
   log.scrollTop = log.scrollHeight;
 }
